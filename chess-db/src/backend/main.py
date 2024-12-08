@@ -1,67 +1,112 @@
-from fastapi import FastAPI, HTTPException, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
-import uvicorn
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-
+from sqlalchemy.ext.asyncio import AsyncSession
 from database import SessionLocal, init_db
-from models import ItemCreate, ItemUpdate, ItemResponse
-from repository import ItemRepository
+from repository import ItemRepository, GameRepository
+from models import ItemCreate, ItemUpdate, ItemResponse, GameResponse
+import logging
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    yield
+logger = logging.getLogger(__name__)
+app = FastAPI()
 
-app = FastAPI(lifespan=lifespan)
-
-# Configure CORS
+# Configure CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=["http://localhost:5173"],  # Vite's default port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Updated database dependency with proper async context management
+# Database dependency
 async def get_db():
-    async with SessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        await db.close()
 
+@app.on_event("startup")
+async def startup():
+    await init_db()
+
+# Item endpoints
 @app.post("/items", response_model=ItemResponse)
 async def create_item(item: ItemCreate, db: AsyncSession = Depends(get_db)):
-    return await ItemRepository(db).create_item(item)
+    repo = ItemRepository(db)
+    return await repo.create_item(item)
 
 @app.get("/items", response_model=list[ItemResponse])
-async def get_items(db: AsyncSession = Depends(get_db)):
-    return await ItemRepository(db).get_items()
+async def read_items(db: AsyncSession = Depends(get_db)):
+    repo = ItemRepository(db)
+    return await repo.get_items()
 
 @app.get("/items/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, db: AsyncSession = Depends(get_db)):
-    item = await ItemRepository(db).get_item(item_id)
-    if not item:
+async def read_item(item_id: int, db: AsyncSession = Depends(get_db)):
+    repo = ItemRepository(db)
+    item = await repo.get_item(item_id)
+    if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
 @app.put("/items/{item_id}", response_model=ItemResponse)
 async def update_item(item_id: int, item: ItemUpdate, db: AsyncSession = Depends(get_db)):
-    updated_item = await ItemRepository(db).update_item(item_id, item)
-    if not updated_item:
+    repo = ItemRepository(db)
+    updated_item = await repo.update_item(item_id, item)
+    if updated_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated_item
 
 @app.delete("/items/{item_id}")
 async def delete_item(item_id: int, db: AsyncSession = Depends(get_db)):
-    success = await ItemRepository(db).delete_item(item_id)
+    repo = ItemRepository(db)
+    success = await repo.delete_item(item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Item not found")
-    return {"status": "success"}
+    return {"ok": True}
+
+# Chess game endpoints
+@app.get("/games", response_model=list[GameResponse])
+async def read_games(
+    player_name: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    logger.info(f"Received request with player_name: {player_name}")
+    repo = GameRepository(db)
+    games = await repo.get_games(
+        player_name=player_name,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit
+    )
+    logger.info(f"Found {len(games)} games matching criteria")
+    return games
+
+@app.get("/games/{game_id}", response_model=GameResponse)
+async def read_game(game_id: int, db: AsyncSession = Depends(get_db)):
+    repo = GameRepository(db)
+    game = await repo.get_game(game_id)
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return game
+
+@app.get("/players/{player_id}/games", response_model=list[GameResponse])
+async def read_player_games(player_id: int, db: AsyncSession = Depends(get_db)):
+    repo = GameRepository(db)
+    games = await repo.get_player_games(player_id)
+    if not games:
+        raise HTTPException(status_code=404, detail="No games found for this player")
+    return games
+
+@app.get("/stats/games")
+async def get_game_stats(db: AsyncSession = Depends(get_db)):
+    repo = GameRepository(db)
+    stats = await repo.get_game_stats()
+    return stats
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

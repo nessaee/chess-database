@@ -17,7 +17,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from parse import ChessGameParser
+from parse import ChessProcessor
 import chess
 from config import DatabaseConfig
 from contextlib import contextmanager
@@ -59,7 +59,7 @@ class PGNScraper:
         self.session = self._setup_http_session()
         
         # Initialize parser with database configuration
-        self.parser = ChessGameParser(db_config=self.db_config)
+        self.parser = ChessProcessor(db_config=self.db_config)
         
         # Load metadata
         self.metadata = self._load_metadata()
