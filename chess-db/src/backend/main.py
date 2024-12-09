@@ -5,26 +5,97 @@ from database import SessionLocal, init_db
 from repository import ItemRepository, GameRepository
 from models import ItemCreate, ItemUpdate, ItemResponse, GameResponse
 import logging
+from repository import AnalysisRepository
+from datetime import datetime
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Dict, Union, Optional
+import logging
+import sys
+from datetime import datetime
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException, Response
+from typing import List, Dict, Optional
+from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
-app = FastAPI()
-
-# Configure CORS for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite's default port
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+import logging
+# Configure logging with detailed formatting
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('api.log')
+    ]
 )
 
-# Database dependency
-async def get_db():
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI application
+app = FastAPI(
+    title="Chess Analysis API",
+    description="API for chess game analysis and statistics",
+    version="1.0.0"
+)
+
+# Configure CORS middleware with explicit settings
+app.add_middleware(
+    CORSMiddleware,
+    # Allow both development and production origins
+    allow_origins=[
+        "http://localhost:5173",  # Vite development server
+        "http://localhost:3000",  # Alternative development port
+        "http://frontend:5173",   # Docker service name
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],          # Allow all standard HTTP methods
+    allow_headers=["*"],          # Allow all standard HTTP headers
+    expose_headers=["*"],         # Expose all response headers
+    max_age=3600,                # Cache preflight requests for 1 hour
+)
+
+# Database session dependency
+async def get_db() -> AsyncSession:
+    """
+    Provides a database session for route handlers.
+    Ensures proper session cleanup after request completion.
+    
+    Returns:
+        AsyncSession: Active database session
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
         await db.close()
+
+# Error handling for database operations
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    """
+    Global exception handler for unhandled errors.
+    Logs the error and returns a structured error response.
+    
+    Args:
+        request: The incoming request
+        exc: The raised exception
+        
+    Returns:
+        JSONResponse: Structured error response
+    """
+    error_id = datetime.utcnow().isoformat()
+    logger.error(f"Error ID: {error_id}", exc_info=exc)
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "error_id": error_id,
+            "message": str(exc),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
 
 @app.on_event("startup")
 async def startup():
@@ -106,6 +177,88 @@ async def get_game_stats(db: AsyncSession = Depends(get_db)):
     repo = GameRepository(db)
     stats = await repo.get_game_stats()
     return stats
+
+
+
+# Data model for move count analysis response
+class MoveCountAnalysis(BaseModel):
+    """
+    Structured response model for move count distribution analysis
+    """
+    actual_full_moves: int
+    number_of_games: int
+    avg_bytes: float
+    results: str
+    min_stored_count: Optional[int]
+    max_stored_count: Optional[int]
+    avg_stored_count: float
+
+@app.get(
+    "/analysis/move-counts",
+    response_model=List[MoveCountAnalysis],
+    responses={
+        200: {"description": "Successfully retrieved move count distribution"},
+        500: {"description": "Internal server error during analysis"},
+        503: {"description": "Database unavailable"}
+    }
+)
+async def get_move_count_distribution(
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+) -> List[MoveCountAnalysis]:
+    """
+    Analyze and retrieve the distribution of move counts across all games.
+    
+    Args:
+        response: FastAPI Response object for header manipulation
+        db: Database session injected by dependency
+        
+    Returns:
+        List[MoveCountAnalysis]: Statistical analysis of game move counts
+        
+    Raises:
+        HTTPException: On database errors or analysis failures
+    """
+    try:
+        # Initialize analysis repository
+        repo = AnalysisRepository(db)
+        
+        # Retrieve and validate analysis results
+        results = await repo.get_move_count_distribution()
+        
+        # Set cache control headers for optimization
+        response.headers["Cache-Control"] = "public, max-age=300"  # Cache for 5 minutes
+        
+        if not results:
+            logger.warning("No game data available for analysis")
+            return []
+            
+        return results
+        
+    except Exception as e:
+        error_id = datetime.utcnow().isoformat()
+        logger.error(f"Error ID {error_id}: Failed to analyze move counts", exc_info=e)
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Failed to analyze move counts",
+                "error_id": error_id,
+                "message": str(e)
+            }
+        )
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for Docker container health monitoring.
+    Returns basic service health information.
+    """
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "chess-backend"
+    }
 
 if __name__ == "__main__":
     import uvicorn

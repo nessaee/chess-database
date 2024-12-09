@@ -9,6 +9,14 @@ import chess
 import bitarray
 import struct
 from models import GameDB, PlayerDB, GameResponse
+import logging
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine import Result
+from typing import List, Dict, Union, TypedDict, Optional
+import logging
+from datetime import datetime
 
 class ItemRepository:
     def __init__(self, db: AsyncSession):
@@ -418,3 +426,122 @@ class GameRepository:
             "earliest_game": stats[2],
             "latest_game": stats[3]
         }
+    
+
+class MoveCountStats(TypedDict):
+    """Type definition for move count statistics"""
+    actual_full_moves: int
+    number_of_games: int
+    avg_bytes: float
+    results: str
+    min_stored_count: Optional[int]
+    max_stored_count: Optional[int]
+    avg_stored_count: float
+
+class AnalysisRepository:
+    """Repository for analyzing chess game statistics with async SQL operations"""
+    
+    def __init__(self, db: AsyncSession):
+        """
+        Initialize repository with async database session
+        
+        Args:
+            db (AsyncSession): Async SQLAlchemy session for database operations
+        """
+        self.db = db
+        self.logger = logging.getLogger(f"{__name__}.AnalysisRepository")
+
+    async def get_move_count_distribution(self) -> List[MoveCountStats]:
+        """
+        Analyze the distribution of move counts across chess games
+        
+        Returns:
+            List[MoveCountStats]: Array of move count statistics
+            
+        Raises:
+            ValueError: If data validation fails or processing errors occur
+            SQLAlchemyError: On database operation failures
+        """
+        try:
+            # Define analysis query with explicit column types
+            query = text("""
+                WITH game_moves_analysis AS (
+                    SELECT
+                        (length(moves) - 20) / 4 as actual_full_moves,
+                        result,
+                        (get_byte(moves, 17) << 8 | get_byte(moves, 18)) as stored_move_count,
+                        length(moves) as total_bytes
+                    FROM games
+                    WHERE moves IS NOT NULL
+                )
+                SELECT
+                    CAST(actual_full_moves AS INTEGER) as actual_full_moves,
+                    CAST(COUNT(*) AS INTEGER) as number_of_games,
+                    ROUND(CAST(AVG(total_bytes) AS NUMERIC), 2) as avg_bytes,
+                    string_agg(DISTINCT result, ', ' ORDER BY result) as results,
+                    MIN(stored_move_count) as min_stored_count,
+                    MAX(stored_move_count) as max_stored_count,
+                    ROUND(CAST(AVG(stored_move_count) AS NUMERIC), 2) as avg_stored_count
+                FROM game_moves_analysis
+                WHERE actual_full_moves >= 0
+                GROUP BY actual_full_moves
+                ORDER BY actual_full_moves ASC;
+            """)
+
+            # Execute query with explicit transaction handling
+            result: Result = await self.db.execute(query)
+            
+            # Process results with validation
+            processed_results: List[MoveCountStats] = []
+            
+            # Use fetchall() without await as it's already a list
+            raw_rows = result.fetchall()
+            
+            for row in raw_rows:
+                try:
+                    # Convert and validate each field
+                    processed_row = MoveCountStats(
+                        actual_full_moves=int(row[0]),
+                        number_of_games=int(row[1]),
+                        avg_bytes=float(row[2]),
+                        results=str(row[3]),
+                        min_stored_count=int(row[4]) if row[4] is not None else None,
+                        max_stored_count=int(row[5]) if row[5] is not None else None,
+                        avg_stored_count=float(row[6]) if row[6] is not None else 0.0
+                    )
+                    
+                    # Validate value ranges
+                    if not 0 <= processed_row["actual_full_moves"] <= 500:
+                        self.logger.warning(f"Invalid move count: {processed_row['actual_full_moves']}")
+                        continue
+                        
+                    if processed_row["number_of_games"] <= 0:
+                        self.logger.warning(f"Invalid game count: {processed_row['number_of_games']}")
+                        continue
+                        
+                    processed_results.append(processed_row)
+                    
+                except (TypeError, ValueError) as e:
+                    self.logger.warning(f"Error processing row: {row}", exc_info=e)
+                    continue
+
+            # Validate final result set
+            if not processed_results:
+                self.logger.warning("No valid move count data found")
+                return []
+                
+            return processed_results
+            
+        except Exception as e:
+            error_time = datetime.utcnow().isoformat()
+            self.logger.error(
+                "Move count analysis failed",
+                extra={
+                    "timestamp": error_time,
+                    "error_type": type(e).__name__,
+                    "error_details": str(e)
+                },
+                exc_info=True
+            )
+            raise ValueError(f"Error analyzing move count distribution: {str(e)}")
+        
