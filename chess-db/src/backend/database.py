@@ -5,13 +5,10 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:chesspass@db:5432/itemsdb")
-
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(os.getenv("DATABASE_URL"), echo=True)
 SessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
-
+print(os.getenv("DATABASE_URL"))
 async def init_db():
     """Initialize database tables if they don't exist"""
     async with engine.begin() as conn:
