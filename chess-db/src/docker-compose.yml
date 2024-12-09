@@ -3,29 +3,29 @@ services:
     build: 
       context: ./frontend
     ports:
-      - "3000:3000"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000
-      - WATCHPACK_POLLING=true
     depends_on:
       - web
     stdin_open: true
     tty: true
+    command: npm run dev -- --host 0.0.0.0  # Enable external access
+
 
   web:
     build: ./backend
     ports:
       - "5000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess
+      - DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chessdb
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - /app/__pycache__
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   db:
@@ -33,7 +33,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=chesspass
-      - POSTGRES_DB=chess
+      - POSTGRES_DB=chessdb
     ports:
       - "5433:5432"
     volumes:
@@ -47,3 +47,8 @@ services:
 
 volumes:
   postgres_data:
+
+
+networks:
+  default:
+    driver: bridge 
