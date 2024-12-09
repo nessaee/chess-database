@@ -2,6 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 asyncpg
+bitarray
 python-chess
 pydantic==2.5.2
 python-dotenv==1.0.0
