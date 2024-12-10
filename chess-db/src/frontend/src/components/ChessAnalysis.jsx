@@ -65,13 +65,13 @@ const CustomTooltip = ({ active, payload }) => {
         <p>Move Count: {data.actual_full_moves}</p>
         <p>Games: {data.number_of_games.toLocaleString()}</p>
         <p>Average Size: {data.avg_bytes.toFixed(2)} bytes</p>
-        <p>Results: {data.results}</p>
-        {data.min_stored_count !== null && (
+        {/* <p>Results: {data.results}</p> */}
+        {/* {data.min_stored_count !== null && (
           <p>
             Move Range: {data.min_stored_count.toLocaleString()} - 
             {data.max_stored_count.toLocaleString()}
           </p>
-        )}
+        )} */}
       </div>
     </div>
   );
