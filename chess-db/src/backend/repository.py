@@ -104,7 +104,7 @@ class ChessGameDecoder:
 
     def decode_game(self, binary_data: bytes) -> Dict[str, Any]:
         """
-        Decode binary game data into a dictionary of game information.
+        Decode binary game data into a dictionary of game information with debug printing.
         
         Args:
             binary_data: Raw binary game data from database
@@ -116,45 +116,60 @@ class ChessGameDecoder:
         bits.frombytes(binary_data)
         offset = 0
         
-        # Decode player IDs (32 bits each)
-        white_id, black_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
-        offset += 64
+        # Debug print total length
+        print(f"Total binary data length: {len(binary_data)} bytes")
         
-        # Decode ELO ratings (16 bits each)
+        # Decode player IDs (32 bits each = 8 bytes total)
+        print(f"Player IDs start at byte {offset//8}")
+        white_id, black_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
+        print(f"White ID: {white_id}, Black ID: {black_id}")
+        offset += 64  # Now at byte 8
+        
+        # Decode ELO ratings (16 bits each = 4 bytes total)
+        print(f"ELO ratings start at byte {offset//8}")
         white_elo, black_elo = struct.unpack('>HH', bits[offset:offset+32].tobytes())
-        offset += 32
+        print(f"White ELO: {white_elo}, Black ELO: {black_elo}")
+        offset += 32  # Now at byte 12
         
         # Decode date (20 bits: year-12, month-4, day-4)
+        print(f"Date starts at byte {offset//8}")
         year = int(bits[offset:offset+12].to01(), 2) + 1900
         month = int(bits[offset+12:offset+16].to01(), 2)
         day = int(bits[offset+16:offset+20].to01(), 2)
-        offset += 20
-        
-        date = None
-        if year != 1900 or month != 0 or day != 0:
-            try:
-                date = datetime(year, month, day).date()
-            except ValueError:
-                pass
+        print(f"Date components - Year: {year}, Month: {month}, Day: {day}")
+        offset += 20  # Now at bit 148 (byte 18 + 4 bits)
         
         # Decode result (2 bits)
+        print(f"Result starts at bit {offset}")
         result_val = int(bits[offset:offset+2].to01(), 2)
         result = self.RESULT_DECODING.get(result_val, '*')
-        offset += 2
+        print(f"Result value: {result_val} -> {result}")
+        offset += 2  # Now at bit 150 (byte 18 + 6 bits)
         
-        # Decode ECO code (16 bits)
+        # Decode ECO code (16 bits = 2 bytes)
+        print(f"ECO starts at bit {offset} (byte {offset//8})")
         eco_num = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
         eco = chr(ord('A') + eco_num // 100) + str(eco_num % 100).zfill(2)
-        offset += 16
+        print(f"ECO: {eco}")
+        offset += 16  # Now at byte 21
         
-        # Decode moves
+        # Decode move count (16 bits = 2 bytes)
+        print(f"Move count starts at byte {offset//8}")
         num_moves = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        offset += 16
+        print(f"Number of moves: {num_moves}")
+        offset += 16  # Now at byte 23
+        
+        # Verify our earlier calculation - moves should start at byte 19
+        print(f"\nMove data starts at byte {offset//8}")
+        print(f"Expected move start at byte 19")
+        print(f"Difference from expected: {offset//8 - 19} bytes")
         
         moves = []
-        for _ in range(num_moves):
+        for i in range(num_moves):
             encoded_move = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-            moves.append(self._decode_move(encoded_move))
+            move = self._decode_move(encoded_move)
+            moves.append(move)
+            print(f"Move {i+1}: {move} (bytes {offset//8}-{(offset+16)//8})")
             offset += 16
 
         return {
@@ -162,12 +177,13 @@ class ChessGameDecoder:
             'black_player_id': black_id,
             'white_elo': white_elo,
             'black_elo': black_elo,
-            'date': date,
+            'date': datetime(year, month, day).date() if all([year != 1900, month != 0, day != 0]) else None,
             'result': result,
             'eco': eco,
             'moves': moves
         }
-
+    
+    
     def convert_uci_to_san(self, uci_moves: List[str]) -> List[str]:
         """
         Convert a list of UCI moves to Standard Algebraic Notation (SAN).
@@ -263,17 +279,13 @@ class GameRepository:
         # Execute query
         result = await self.db.execute(query)
         games = result.scalars().unique().all()
-        print("="*50)
-        print(query, result)
-        print("="*50)
-        print(games)
         # Process games and convert moves
         processed_games = []
         for game in games:
             try:
                 # Decode binary game data
                 decoded_data = self.decoder.decode_game(game.moves)
-                print(decoded_data)
+
                 # Convert moves if needed
                 moves = decoded_data['moves']
                 if move_notation == 'san':
@@ -335,13 +347,13 @@ class GameRepository:
             
             return GameResponse(
                 id=game.id,
-                white_player_id=decoded_data['white_player_id'],
-                black_player_id=decoded_data['black_player_id'],
+                white_player_id=game.white_player_id,
+                black_player_id=game.black_player_id,
                 white_player=game.white_player,
                 black_player=game.black_player,
-                date=decoded_data['date'],
-                result=decoded_data['result'],
-                eco=decoded_data['eco'],
+                date=game.date,
+                result=game.result,
+                eco=game.eco,
                 moves=' '.join(moves)
             )
             
