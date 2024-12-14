@@ -260,6 +260,196 @@ async def health_check():
         "service": "chess-backend"
     }
 
+
+
+# Import additional required Pydantic models
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from datetime import datetime
+
+class PlayerPerformanceResponse(BaseModel):
+    """Response model for player performance timeline data"""
+    time_period: str = Field(..., description="Time period (month/year)")
+    games_played: int = Field(..., ge=0, description="Total games played")
+    wins: int = Field(..., ge=0, description="Number of wins")
+    losses: int = Field(..., ge=0, description="Number of losses")
+    draws: int = Field(..., ge=0, description="Number of draws")
+    win_rate: float = Field(..., ge=0, le=100, description="Win percentage")
+    avg_moves: float = Field(..., ge=0, description="Average moves per game")
+    white_games: int = Field(..., ge=0, description="Games played as white")
+    black_games: int = Field(..., ge=0, description="Games played as black")
+    elo_rating: Optional[int] = Field(None, ge=0, le=3000, description="ELO rating if available")
+
+class OpeningStatsResponse(BaseModel):
+    """Response model for opening statistics"""
+    eco_code: str = Field(..., description="ECO code of the opening")
+    opening_name: str = Field(..., description="Name of the opening")
+    games_played: int = Field(..., ge=0, description="Number of games with this opening")
+    win_rate: float = Field(..., ge=0, le=100, description="Win rate with this opening")
+    avg_moves: float = Field(..., ge=0, description="Average game length with this opening")
+
+@app.get(
+    "/players/{player_id}/performance",
+    response_model=List[PlayerPerformanceResponse],
+    responses={
+        200: {"description": "Successfully retrieved player performance data"},
+        404: {"description": "Player not found"},
+        500: {"description": "Internal server error during analysis"}
+    }
+)
+async def get_player_performance(
+    player_id: int,
+    time_range: str = 'monthly',
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+) -> List[PlayerPerformanceResponse]:
+    """
+    Get a player's performance statistics over time.
+    
+    Args:
+        player_id: Database ID of the player
+        time_range: Aggregation period ('monthly' or 'yearly')
+        start_date: Optional start date for analysis (YYYY-MM-DD)
+        end_date: Optional end date for analysis (YYYY-MM-DD)
+        response: FastAPI Response object for header manipulation
+        db: Database session
+        
+    Returns:
+        List[PlayerPerformanceResponse]: Performance statistics over time
+        
+    Raises:
+        HTTPException: If player is not found or analysis fails
+    """
+    try:
+        # Validate time range parameter
+        if time_range not in ('monthly', 'yearly'):
+            raise HTTPException(
+                status_code=400,
+                detail="time_range must be 'monthly' or 'yearly'"
+            )
+
+        # Validate date format if provided
+        for date_str in (start_date, end_date):
+            if date_str:
+                try:
+                    datetime.strptime(date_str, '%Y-%m-%d')
+                except ValueError:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Dates must be in YYYY-MM-DD format"
+                    )
+
+        # Initialize analysis repository
+        repo = AnalysisRepository(db)
+        
+        # Retrieve performance data
+        performance_data = await repo.get_player_performance_timeline(
+            player_id=player_id,
+            time_range=time_range,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        # Set cache control headers
+        if response:
+            response.headers["Cache-Control"] = "public, max-age=300"
+        
+        if not performance_data:
+            raise HTTPException(
+                status_code=404,
+                detail="No performance data found for player"
+            )
+            
+        return performance_data
+        
+    except ValueError as e:
+        error_id = datetime.utcnow().isoformat()
+        logger.error(f"Error ID {error_id}: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=400, detail=str(e))
+        
+    except Exception as e:
+        error_id = datetime.utcnow().isoformat()
+        logger.error(f"Error ID {error_id}: Failed to analyze player performance", exc_info=e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Failed to analyze player performance",
+                "error_id": error_id,
+                "message": str(e)
+            }
+        )
+
+@app.get(
+    "/players/{player_id}/openings",
+    response_model=List[OpeningStatsResponse],
+    responses={
+        200: {"description": "Successfully retrieved opening statistics"},
+        404: {"description": "Player not found or no opening data available"},
+        500: {"description": "Internal server error during analysis"}
+    }
+)
+async def get_player_openings(
+    player_id: int,
+    min_games: int = Field(5, ge=1, description="Minimum games threshold"),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+) -> List[OpeningStatsResponse]:
+    """
+    Get statistics about a player's performance with different openings.
+    
+    Args:
+        player_id: Database ID of the player
+        min_games: Minimum number of games required for opening analysis
+        response: FastAPI Response object for header manipulation
+        db: Database session
+        
+    Returns:
+        List[OpeningStatsResponse]: Opening statistics for the player
+        
+    Raises:
+        HTTPException: If player is not found or analysis fails
+    """
+    try:
+        # Initialize analysis repository
+        repo = AnalysisRepository(db)
+        
+        # Retrieve opening statistics
+        opening_stats = await repo.get_player_opening_stats(
+            player_id=player_id,
+            min_games=min_games
+        )
+        
+        # Set cache control headers
+        if response:
+            response.headers["Cache-Control"] = "public, max-age=300"
+        
+        if not opening_stats:
+            raise HTTPException(
+                status_code=404,
+                detail="No opening statistics found for player"
+            )
+            
+        return opening_stats
+        
+    except ValueError as e:
+        error_id = datetime.utcnow().isoformat()
+        logger.error(f"Error ID {error_id}: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=400, detail=str(e))
+        
+    except Exception as e:
+        error_id = datetime.utcnow().isoformat()
+        logger.error(f"Error ID {error_id}: Failed to analyze opening statistics", exc_info=e)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Failed to analyze opening statistics",
+                "error_id": error_id,
+                "message": str(e)
+            }
+        )
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
