@@ -3,7 +3,7 @@ from datetime import datetime
 import struct
 import chess
 import bitarray
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict, Any
 
 @dataclass
 class ChessGameMetadata:
@@ -114,60 +114,87 @@ class ChessGameEncoder:
         
         return bits.tobytes()
 
-    def decode_game(self, binary_data: bytes) -> ChessGameMetadata:
-        """Decodes binary data back into a ChessGameMetadata object."""
+    def decode_game(self, binary_data: bytes) -> Dict[str, Any]:
+        """
+        Decode binary game data into a dictionary of game information with debug printing.
+        
+        Args:
+            binary_data: Raw binary game data from database
+            
+        Returns:
+            Dict containing decoded game information including moves
+        """
         bits = bitarray.bitarray()
         bits.frombytes(binary_data)
-        
-        # Read fixed-length header
         offset = 0
-        w_id, b_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
-        offset += 64
         
-        w_elo, b_elo = struct.unpack('>HH', bits[offset:offset+32].tobytes())
-        offset += 32
+        # Debug print total length
+        print(f"Total binary data length: {len(binary_data)} bytes")
         
-        # Decode date
+        # Decode player IDs (32 bits each = 8 bytes total)
+        print(f"Player IDs start at byte {offset//8}")
+        white_id, black_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
+        print(f"White ID: {white_id}, Black ID: {black_id}")
+        offset += 64  # Now at byte 8
+        
+        # Decode ELO ratings (16 bits each = 4 bytes total)
+        print(f"ELO ratings start at byte {offset//8}")
+        white_elo, black_elo = struct.unpack('>HH', bits[offset:offset+32].tobytes())
+        print(f"White ELO: {white_elo}, Black ELO: {black_elo}")
+        offset += 32  # Now at byte 12
+        
+        # Decode date (20 bits: year-12, month-4, day-4)
+        print(f"Date starts at byte {offset//8}")
         year = int(bits[offset:offset+12].to01(), 2) + 1900
         month = int(bits[offset+12:offset+16].to01(), 2)
         day = int(bits[offset+16:offset+20].to01(), 2)
-        offset += 20
+        print(f"Date components - Year: {year}, Month: {month}, Day: {day}")
+        offset += 20  # Now at bit 148 (byte 18 + 4 bits)
         
-        if year == 1900 and month == 0 and day == 0:
-            date = None
-        else:
-            date = datetime(year, month, day)
+        # Decode result (2 bits)
+        print(f"Result starts at bit {offset}")
+        result_val = int(bits[offset:offset+2].to01(), 2)
+        result = self.RESULT_DECODING.get(result_val, '*')
+        print(f"Result value: {result_val} -> {result}")
+        offset += 2  # Now at bit 150 (byte 18 + 6 bits)
         
-        # Decode result
-        result = self.RESULT_DECODING[int(bits[offset:offset+2].to01(), 2)]
-        offset += 2
-        
-        # Decode ECO
+        # Decode ECO code (16 bits = 2 bytes)
+        print(f"ECO starts at bit {offset} (byte {offset//8})")
         eco_num = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
         eco = chr(ord('A') + eco_num // 100) + str(eco_num % 100).zfill(2)
-        offset += 16
+        print(f"ECO: {eco}")
+        offset += 16  # Now at byte 21
         
-        # Decode moves
+        # Decode move count (16 bits = 2 bytes)
+        print(f"Move count starts at byte {offset//8}")
         num_moves = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        offset += 16
+        print(f"Number of moves: {num_moves}")
+        offset += 16  # Now at byte 23
+        
+        # Verify our earlier calculation - moves should start at byte 19
+        print(f"\nMove data starts at byte {offset//8}")
+        print(f"Expected move start at byte 19")
+        print(f"Difference from expected: {offset//8 - 19} bytes")
         
         moves = []
-        for _ in range(num_moves):
+        for i in range(num_moves):
             encoded_move = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-            moves.append(self._decode_move(encoded_move))
+            move = self._decode_move(encoded_move)
+            moves.append(move)
+            print(f"Move {i+1}: {move} (bytes {offset//8}-{(offset+16)//8})")
             offset += 16
-        
-        return ChessGameMetadata(
-            white_player_id=w_id,
-            black_player_id=b_id,
-            white_elo=w_elo,
-            black_elo=b_elo,
-            date=date,
-            result=result,
-            eco=eco,
-            moves=' '.join(moves)
-        )
 
+        return {
+            'white_player_id': white_id,
+            'black_player_id': black_id,
+            'white_elo': white_elo,
+            'black_elo': black_elo,
+            'date': datetime(year, month, day).date() if all([year != 1900, month != 0, day != 0]) else None,
+            'result': result,
+            'eco': eco,
+            'moves': moves
+        }
+    
     def estimate_compression_ratio(self, game: ChessGameMetadata) -> float:
         """Estimates the compression ratio achieved by the binary encoding."""
         original_size = (

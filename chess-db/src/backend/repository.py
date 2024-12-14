@@ -90,13 +90,20 @@ class ChessGameDecoder:
         """
         if encoded_move in self.reverse_move_cache:
             return self.reverse_move_cache[encoded_move]
-            
+        
+        print(bin(encoded_move))
         from_square = (encoded_move >> 10) & 0x3F
         to_square = (encoded_move >> 4) & 0x3F
         promotion = encoded_move & 0xF
+        # trim last digit of promotion
+        
+        # binary promotion: 0001 -> 1, 0010 -> 2, 0011 -> 3, 0100 -> 4, 0101 -> 5
+        print(bin(promotion))
         
         move = chess.SQUARE_NAMES[from_square] + chess.SQUARE_NAMES[to_square]
         if promotion:
+            print(f"from_square: {from_square}, to_square: {to_square}, promotion: {promotion}")
+            print(f"Promotion: {promotion}")
             move += "pnbrqk"[promotion - 1]
             
         self.reverse_move_cache[encoded_move] = move
@@ -183,7 +190,7 @@ class ChessGameDecoder:
             'moves': moves
         }
     
-    
+
     def convert_uci_to_san(self, uci_moves: List[str]) -> List[str]:
         """
         Convert a list of UCI moves to Standard Algebraic Notation (SAN).
@@ -254,6 +261,7 @@ class GameRepository:
             )
         )
 
+        query = query.where(GameDB.date.isnot(None))
         
         # Apply filters
         if player_name:
@@ -294,13 +302,13 @@ class GameRepository:
                 # Create response object
                 processed_game = GameResponse(
                     id=game.id,
-                    white_player_id=decoded_data['white_player_id'],
-                    black_player_id=decoded_data['black_player_id'],
+                    white_player_id=game.white_player_id,
+                    black_player_id=game.black_player_id,
                     white_player=game.white_player,
                     black_player=game.black_player,
-                    date=decoded_data['date'],
-                    result=decoded_data['result'],
-                    eco=decoded_data['eco'],
+                    date=game.date,
+                    result=game.result,
+                    eco=game.eco,
                     moves=' '.join(moves)
                 )
                 processed_games.append(processed_game)
