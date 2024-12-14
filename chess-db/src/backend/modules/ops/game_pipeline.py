@@ -23,7 +23,7 @@ import chess
 import sys
 import bitarray
 from typing import Optional, Tuple, List
-
+from encode import ChessMoveEncoder
 class TemporaryDirectory:
     def __init__(self, prefix=None):
         self.prefix = prefix
@@ -88,7 +88,7 @@ def parse_pgn_chunk(chunk: str) -> List[Dict]:
                 'date': headers.get('Date', ''),
                 'result': headers.get('Result', '*'),
                 'eco': headers.get('ECO', 'A00'),  # default if missing
-                'moves': ' '.join(moves)
+                'moves': moves
             })
         except:
             continue
@@ -105,161 +105,7 @@ class ChessGameMetadata:
     eco: str
     moves: str
 
-import struct
-import chess
-import bitarray
-from datetime import datetime
-from dataclasses import dataclass
-from typing import Optional
 
-@dataclass
-class ChessGameMetadata:
-    white_player_id: int
-    black_player_id: int
-    white_elo: int
-    black_elo: int
-    date: Optional[datetime]
-    result: str
-    eco: str
-    moves: str  # Space-separated UCI moves
-
-class ChessGameEncoder:
-    RESULT_ENCODING = {
-        '1-0': 0b00,
-        '0-1': 0b01,
-        '1/2-1/2': 0b10,
-        '*': 0b11
-    }
-    RESULT_DECODING = {v: k for k, v in RESULT_ENCODING.items()}
-
-    def __init__(self):
-        self.move_cache = {}
-        self.reverse_move_cache = {}
-
-    def _encode_move(self, uci_move: str) -> int:
-        if uci_move in self.move_cache:
-            return self.move_cache[uci_move]
-
-        from_sq = chess.SQUARE_NAMES.index(uci_move[:2])
-        to_sq = chess.SQUARE_NAMES.index(uci_move[2:4])
-        promotion = 0
-        if len(uci_move) == 5:
-            # Map promotion pieces: p(1), n(2), b(3), r(4), q(5), k(6)
-            promotion = "pnbrqk".index(uci_move[4].lower()) + 1
-
-        encoded = (from_sq << 10) | (to_sq << 4) | promotion
-        self.move_cache[uci_move] = encoded
-        self.reverse_move_cache[encoded] = uci_move
-        return encoded
-
-    def _decode_move(self, encoded_move: int) -> str:
-        if encoded_move in self.reverse_move_cache:
-            return self.reverse_move_cache[encoded_move]
-
-        from_sq = (encoded_move >> 10) & 0x3F
-        to_sq = (encoded_move >> 4) & 0x3F
-        promotion = encoded_move & 0xF
-        move = chess.SQUARE_NAMES[from_sq] + chess.SQUARE_NAMES[to_sq]
-        if promotion:
-            move += "pnbrqk"[promotion - 1]
-
-        self.reverse_move_cache[encoded_move] = move
-        return move
-
-    def encode_game(self, game: ChessGameMetadata) -> bytes:
-        bits = bitarray.bitarray()
-
-        # Player IDs (32 bits each)
-        bits.frombytes(struct.pack('>II', game.white_player_id, game.black_player_id))
-
-        # ELOs (16 bits each)
-        bits.frombytes(struct.pack('>HH', game.white_elo, game.black_elo))
-
-        # Date (year offset from 1900: 12 bits, month: 4 bits, day: 4 bits)
-        if game.date:
-            year_bits = f"{game.date.year - 1900:012b}"
-            month_bits = f"{game.date.month:04b}"
-            day_bits = f"{game.date.day:04b}"
-        else:
-            year_bits = '0' * 12
-            month_bits = '0' * 4
-            day_bits = '0' * 4
-
-        for b in year_bits + month_bits + day_bits:
-            bits.append(b == '1')
-
-        # Result (2 bits)
-        result_val = self.RESULT_ENCODING.get(game.result, 0b11)
-        bits.append(bool(result_val & 0b10))
-        bits.append(bool(result_val & 0b01))
-
-        # ECO (16 bits)
-        letter_val = ord(game.eco[0]) - ord('A')
-        number_val = int(game.eco[1:])
-        eco_num = letter_val * 100 + number_val
-        bits.frombytes(struct.pack('>H', eco_num))
-
-        # Moves
-        move_list = game.moves.split()
-        bits.frombytes(struct.pack('>H', len(move_list)))
-        for m in move_list:
-            encoded_move = self._encode_move(m)
-            bits.frombytes(struct.pack('>H', encoded_move))
-
-        return bits.tobytes()
-
-    def decode_game(self, data: bytes) -> ChessGameMetadata:
-        bits = bitarray.bitarray()
-        bits.frombytes(data)
-        offset = 0
-
-        # Player IDs
-        white_player_id, black_player_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
-        offset += 64
-
-        # ELOs
-        white_elo, black_elo = struct.unpack('>HH', bits[offset:offset+32].tobytes())
-        offset += 32
-
-        # Date
-        year = int(bits[offset:offset+12].to01(), 2) + 1900
-        month = int(bits[offset+12:offset+16].to01(), 2)
-        day = int(bits[offset+16:offset+20].to01(), 2)
-        offset += 20
-        if year == 1900 and month == 0 and day == 0:
-            date = None
-        else:
-            date = datetime(year, month, day)
-
-        # Result
-        result_val = int(bits[offset:offset+2].to01(), 2)
-        offset += 2
-        result = self.RESULT_DECODING.get(result_val, '*')
-
-        # ECO
-        eco_num = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        offset += 16
-        eco = chr(ord('A') + eco_num // 100) + str(eco_num % 100).zfill(2)
-
-        # Moves
-        num_moves = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        offset += 16
-        moves = []
-        for _ in range(num_moves):
-            encoded_move = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-            moves.append(self._decode_move(encoded_move))
-            offset += 16
-
-        return ChessGameMetadata(
-            white_player_id=white_player_id,
-            black_player_id=black_player_id,
-            white_elo=white_elo,
-            black_elo=black_elo,
-            date=date,
-            result=result,
-            eco=eco,
-            moves=' '.join(moves)
-        )
 
 class PipelineMetrics:
     def __init__(self):
@@ -327,7 +173,7 @@ class ChessDataPipeline:
         self.http_session = None
 
         self.processed_files = set()
-        self.encoder = ChessGameEncoder()
+        self.encoder = ChessMoveEncoder()
 
     def _setup_logger(self) -> logging.Logger:
         logger = logging.getLogger("ChessPipeline")
@@ -537,7 +383,8 @@ class ChessDataPipeline:
                             eco=eco,
                             moves=g['moves']
                         )
-                        encoded_game = self.encoder.encode_game(metadata)
+
+                        encoded_game = self.encoder.encode_moves(metadata.moves)
 
                         records.append((
                             metadata.white_player_id,

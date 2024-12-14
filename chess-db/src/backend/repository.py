@@ -14,10 +14,10 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.engine import Result
-from typing import List, Dict, Union, TypedDict, Optional
+from typing import List, Dict, Union, TypedDict, Optional, Any, Tuple
 import logging
 from datetime import datetime
-
+from modules.ops.encode import ChessMoveEncoder
 class ItemRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -60,162 +60,6 @@ class ItemRepository:
         return True
     
 
-class ChessGameDecoder:
-    """
-    Handles decoding of binary-encoded chess game data and move format conversion.
-    """
-    
-    # Mapping for chess results from 2-bit representation
-    RESULT_DECODING = {
-        0b00: '1-0',     # White wins
-        0b01: '0-1',     # Black wins
-        0b10: '1/2-1/2', # Draw
-        0b11: '*'        # Unknown/Ongoing
-    }
-    
-    def __init__(self):
-        """Initialize decoder with move conversion caches."""
-        self.move_cache = {}
-        self.reverse_move_cache = {}
-
-    def _decode_move(self, encoded_move: int) -> str:
-        """
-        Decode a 16-bit integer into a UCI move string.
-        
-        Args:
-            encoded_move: Integer representing encoded chess move
-            
-        Returns:
-            str: UCI format move (e.g., 'e2e4')
-        """
-        if encoded_move in self.reverse_move_cache:
-            return self.reverse_move_cache[encoded_move]
-        
-        print(bin(encoded_move))
-        from_square = (encoded_move >> 10) & 0x3F
-        to_square = (encoded_move >> 4) & 0x3F
-        promotion = encoded_move & 0xF
-        # trim last digit of promotion
-        
-        # binary promotion: 0001 -> 1, 0010 -> 2, 0011 -> 3, 0100 -> 4, 0101 -> 5
-        print(bin(promotion))
-        
-        move = chess.SQUARE_NAMES[from_square] + chess.SQUARE_NAMES[to_square]
-        if promotion:
-            print(f"from_square: {from_square}, to_square: {to_square}, promotion: {promotion}")
-            print(f"Promotion: {promotion}")
-            move += "pnbrqk"[promotion - 1]
-            
-        self.reverse_move_cache[encoded_move] = move
-        return move
-
-    def decode_game(self, binary_data: bytes) -> Dict[str, Any]:
-        """
-        Decode binary game data into a dictionary of game information with debug printing.
-        
-        Args:
-            binary_data: Raw binary game data from database
-            
-        Returns:
-            Dict containing decoded game information including moves
-        """
-        bits = bitarray.bitarray()
-        bits.frombytes(binary_data)
-        offset = 0
-        
-        # Debug print total length
-        print(f"Total binary data length: {len(binary_data)} bytes")
-        
-        # Decode player IDs (32 bits each = 8 bytes total)
-        print(f"Player IDs start at byte {offset//8}")
-        white_id, black_id = struct.unpack('>II', bits[offset:offset+64].tobytes())
-        print(f"White ID: {white_id}, Black ID: {black_id}")
-        offset += 64  # Now at byte 8
-        
-        # Decode ELO ratings (16 bits each = 4 bytes total)
-        print(f"ELO ratings start at byte {offset//8}")
-        white_elo, black_elo = struct.unpack('>HH', bits[offset:offset+32].tobytes())
-        print(f"White ELO: {white_elo}, Black ELO: {black_elo}")
-        offset += 32  # Now at byte 12
-        
-        # Decode date (20 bits: year-12, month-4, day-4)
-        print(f"Date starts at byte {offset//8}")
-        year = int(bits[offset:offset+12].to01(), 2) + 1900
-        month = int(bits[offset+12:offset+16].to01(), 2)
-        day = int(bits[offset+16:offset+20].to01(), 2)
-        print(f"Date components - Year: {year}, Month: {month}, Day: {day}")
-        offset += 20  # Now at bit 148 (byte 18 + 4 bits)
-        
-        # Decode result (2 bits)
-        print(f"Result starts at bit {offset}")
-        result_val = int(bits[offset:offset+2].to01(), 2)
-        result = self.RESULT_DECODING.get(result_val, '*')
-        print(f"Result value: {result_val} -> {result}")
-        offset += 2  # Now at bit 150 (byte 18 + 6 bits)
-        
-        # Decode ECO code (16 bits = 2 bytes)
-        print(f"ECO starts at bit {offset} (byte {offset//8})")
-        eco_num = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        eco = chr(ord('A') + eco_num // 100) + str(eco_num % 100).zfill(2)
-        print(f"ECO: {eco}")
-        offset += 16  # Now at byte 21
-        
-        # Decode move count (16 bits = 2 bytes)
-        print(f"Move count starts at byte {offset//8}")
-        num_moves = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-        print(f"Number of moves: {num_moves}")
-        offset += 16  # Now at byte 23
-        
-        # Verify our earlier calculation - moves should start at byte 19
-        print(f"\nMove data starts at byte {offset//8}")
-        print(f"Expected move start at byte 19")
-        print(f"Difference from expected: {offset//8 - 19} bytes")
-        
-        moves = []
-        for i in range(num_moves):
-            encoded_move = struct.unpack('>H', bits[offset:offset+16].tobytes())[0]
-            move = self._decode_move(encoded_move)
-            moves.append(move)
-            print(f"Move {i+1}: {move} (bytes {offset//8}-{(offset+16)//8})")
-            offset += 16
-
-        return {
-            'white_player_id': white_id,
-            'black_player_id': black_id,
-            'white_elo': white_elo,
-            'black_elo': black_elo,
-            'date': datetime(year, month, day).date() if all([year != 1900, month != 0, day != 0]) else None,
-            'result': result,
-            'eco': eco,
-            'moves': moves
-        }
-    
-
-    def convert_uci_to_san(self, uci_moves: List[str]) -> List[str]:
-        """
-        Convert a list of UCI moves to Standard Algebraic Notation (SAN).
-        
-        Args:
-            uci_moves: List of moves in UCI format (e.g., ['e2e4', 'e7e5'])
-            
-        Returns:
-            List of moves in SAN format (e.g., ['e4', 'e5'])
-        """
-        board = chess.Board()
-        san_moves = []
-        
-        for uci_move in uci_moves:
-            try:
-                move = chess.Move.from_uci(uci_move)
-                san_moves.append(board.san(move))
-                board.push(move)
-            except (chess.InvalidMoveError, chess.IllegalMoveError) as e:
-                # Log error but continue processing remaining moves
-                print(f"Error converting move {uci_move}: {str(e)}")
-                san_moves.append(uci_move)  # Fall back to UCI notation
-                
-        return san_moves
-
 class GameRepository:
     """
     Enhanced repository layer for chess game data with move format conversion.
@@ -229,7 +73,7 @@ class GameRepository:
             db: Asynchronous database session
         """
         self.db = db
-        self.decoder = ChessGameDecoder()
+        self.decoder = ChessMoveEncoder()
 
     async def get_games(
         self,
@@ -283,22 +127,24 @@ class GameRepository:
 
         # Apply limit and ordering
         query = query.order_by(GameDB.date.desc()).limit(limit)
-        
+
         # Execute query
         result = await self.db.execute(query)
         games = result.scalars().unique().all()
         # Process games and convert moves
         processed_games = []
+        counter = 0 
+        limit = 1
         for game in games:
+            if counter >= 100:
+                break
             try:
                 # Decode binary game data
-                decoded_data = self.decoder.decode_game(game.moves)
-
+                moves = self.decoder.decode_moves(game.moves)
                 # Convert moves if needed
-                moves = decoded_data['moves']
                 if move_notation == 'san':
                     moves = self.decoder.convert_uci_to_san(moves)
-                
+
                 # Create response object
                 processed_game = GameResponse(
                     id=game.id,
@@ -312,7 +158,7 @@ class GameRepository:
                     moves=' '.join(moves)
                 )
                 processed_games.append(processed_game)
-                
+                counter+=1
             except Exception as e:
                 # Log error but continue processing other games
                 print(f"Error processing game {game.id}: {str(e)}")
@@ -346,10 +192,7 @@ class GameRepository:
             
         try:
             # Decode binary game data
-            decoded_data = self.decoder.decode_game(game.moves)
-            
-            # Convert moves if needed
-            moves = decoded_data['moves']
+            moves = self.decoder.decode_moves(game.moves)
             if move_notation == 'san':
                 moves = self.decoder.convert_uci_to_san(moves)
             
@@ -404,21 +247,20 @@ class GameRepository:
         processed_games = []
         for game in games:
             try:
-                decoded_data = self.decoder.decode_game(game.moves)
-                moves = decoded_data['moves']
+                moves = self.decoder.decode_moves(game.moves)
                 
                 if move_notation == 'san':
                     moves = self.decoder.convert_uci_to_san(moves)
                 
                 processed_game = GameResponse(
                     id=game.id,
-                    white_player_id=decoded_data['white_player_id'],
-                    black_player_id=decoded_data['black_player_id'],
+                    white_player_id=game.white_player_id,
+                    black_player_id=game.black_player_id,
                     white_player=game.white_player,
                     black_player=game.black_player,
-                    date=decoded_data['date'],
-                    result=decoded_data['result'],
-                    eco=decoded_data['eco'],
+                    date=game.date,
+                    result=game.result,
+                    eco=game.eco,
                     moves=' '.join(moves)
                 )
                 processed_games.append(processed_game)
@@ -448,111 +290,147 @@ class GameRepository:
         }
     
 
+from typing import List, Dict, Optional, TypedDict, Tuple
+import logging
+from datetime import datetime
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+from modules.ops.encode import ChessMoveEncoder
+
 class MoveCountStats(TypedDict):
     """Type definition for move count statistics"""
-    actual_full_moves: int
-    number_of_games: int
-    avg_bytes: float
-    results: str
-    min_stored_count: Optional[int]
-    max_stored_count: Optional[int]
-    avg_stored_count: float
+    actual_full_moves: int           # Number of full moves in game
+    number_of_games: int            # Count of games with this move count
+    avg_bytes: float               # Average size of encoded game data
+    results: str                   # Aggregated game results
+    min_stored_count: Optional[int] # Minimum stored move count
+    max_stored_count: Optional[int] # Maximum stored move count
+    avg_stored_count: float        # Average stored move count
 
 class AnalysisRepository:
-    """Repository for analyzing chess game statistics with async SQL operations"""
+    """Repository for analyzing chess game statistics with focus on move data analysis"""
     
     def __init__(self, db: AsyncSession):
         """
-        Initialize repository with async database session
+        Initialize repository with database session
         
         Args:
             db (AsyncSession): Async SQLAlchemy session for database operations
         """
         self.db = db
         self.logger = logging.getLogger(f"{__name__}.AnalysisRepository")
+        self.move_encoder = ChessMoveEncoder()  # For decoding move data if needed
 
     async def get_move_count_distribution(self) -> List[MoveCountStats]:
         """
-        Analyze the distribution of move counts across chess games
+        Analyze the distribution of move counts across chess games.
+        
+        This method computes statistics about game lengths, considering both the
+        actual encoded moves and the stored move count in the header.
         
         Returns:
             List[MoveCountStats]: Array of move count statistics
             
         Raises:
-            ValueError: If data validation fails or processing errors occur
             SQLAlchemyError: On database operation failures
+            ValueError: If data validation fails
         """
         try:
-            # Define analysis query with explicit column types
+            # Define analysis query with explicit column types and data validation
             query = text("""
                 WITH game_moves_analysis AS (
                     SELECT
-                        (length(moves) - 20) / 4 as actual_full_moves,
+                        -- Calculate actual moves from binary data length
+                        -- Subtract header size (19 bytes) and divide remaining by 2 bytes per move
+                        (octet_length(moves) - 19) / 2 as actual_full_moves,
+                        
+                        -- Extract stored move count from header (bytes 17-18)
+                        get_byte(moves, 17) << 8 | get_byte(moves, 18) as stored_move_count,
+                        
+                        -- Game metadata
                         result,
-                        (get_byte(moves, 17) << 8 | get_byte(moves, 18)) as stored_move_count,
-                        length(moves) as total_bytes
+                        octet_length(moves) as total_bytes
+                        
                     FROM games
                     WHERE moves IS NOT NULL
+                        AND octet_length(moves) >= 19  -- Ensure minimum header size
                 )
                 SELECT
-                    CAST(actual_full_moves AS INTEGER) as actual_full_moves,
-                    CAST(COUNT(*) AS INTEGER) as number_of_games,
-                    ROUND(CAST(AVG(total_bytes) AS NUMERIC), 2) as avg_bytes,
+                    actual_full_moves,
+                    COUNT(*) as number_of_games,
+                    ROUND(AVG(total_bytes)::numeric, 2) as avg_bytes,
                     string_agg(DISTINCT result, ', ' ORDER BY result) as results,
                     MIN(stored_move_count) as min_stored_count,
                     MAX(stored_move_count) as max_stored_count,
-                    ROUND(CAST(AVG(stored_move_count) AS NUMERIC), 2) as avg_stored_count
+                    ROUND(AVG(stored_move_count)::numeric, 2) as avg_stored_count
+                    
                 FROM game_moves_analysis
-                WHERE actual_full_moves >= 0
+                WHERE 
+                    -- Filter out invalid move counts
+                    actual_full_moves >= 0
+                    AND actual_full_moves <= 500  -- Reasonable maximum game length
+                    
                 GROUP BY actual_full_moves
                 ORDER BY actual_full_moves ASC;
             """)
 
             # Execute query with explicit transaction handling
-            result: Result = await self.db.execute(query)
-            
-            # Process results with validation
-            processed_results: List[MoveCountStats] = []
-            
-            # Use fetchall() without await as it's already a list
+            result = await self.db.execute(query)
             raw_rows = result.fetchall()
+
+            # Process and validate results
+            processed_results: List[MoveCountStats] = []
             
             for row in raw_rows:
                 try:
-                    # Convert and validate each field
-                    processed_row = MoveCountStats(
-                        actual_full_moves=int(row[0]),
-                        number_of_games=int(row[1]),
-                        avg_bytes=float(row[2]),
-                        results=str(row[3]),
-                        min_stored_count=int(row[4]) if row[4] is not None else None,
-                        max_stored_count=int(row[5]) if row[5] is not None else None,
-                        avg_stored_count=float(row[6]) if row[6] is not None else 0.0
-                    )
-                    
+                    # Validate numeric fields
+                    actual_moves = int(row[0])
+                    num_games = int(row[1])
+                    avg_bytes = float(row[2])
+                    min_count = int(row[4]) if row[4] is not None else None
+                    max_count = int(row[5]) if row[5] is not None else None
+                    avg_count = float(row[6]) if row[6] is not None else 0.0
+
                     # Validate value ranges
-                    if not 0 <= processed_row["actual_full_moves"] <= 500:
-                        self.logger.warning(f"Invalid move count: {processed_row['actual_full_moves']}")
+                    if not (0 <= actual_moves <= 500):
+                        self.logger.warning(
+                            f"Invalid move count detected: {actual_moves}"
+                        )
                         continue
-                        
-                    if processed_row["number_of_games"] <= 0:
-                        self.logger.warning(f"Invalid game count: {processed_row['number_of_games']}")
+
+                    if num_games <= 0:
+                        self.logger.warning(
+                            f"Invalid game count: {num_games} for {actual_moves} moves"
+                        )
                         continue
-                        
+
+                    processed_row = MoveCountStats(
+                        actual_full_moves=actual_moves,
+                        number_of_games=num_games,
+                        avg_bytes=avg_bytes,
+                        results=str(row[3]),
+                        min_stored_count=min_count,
+                        max_stored_count=max_count,
+                        avg_stored_count=avg_count
+                    )
                     processed_results.append(processed_row)
-                    
+
                 except (TypeError, ValueError) as e:
-                    self.logger.warning(f"Error processing row: {row}", exc_info=e)
+                    self.logger.warning(
+                        f"Error processing row: {row}",
+                        exc_info=e
+                    )
                     continue
 
             # Validate final result set
             if not processed_results:
                 self.logger.warning("No valid move count data found")
                 return []
-                
+
             return processed_results
-            
-        except Exception as e:
+
+        except SQLAlchemyError as e:
             error_time = datetime.utcnow().isoformat()
             self.logger.error(
                 "Move count analysis failed",
@@ -564,4 +442,3 @@ class AnalysisRepository:
                 exc_info=True
             )
             raise ValueError(f"Error analyzing move count distribution: {str(e)}")
-        
