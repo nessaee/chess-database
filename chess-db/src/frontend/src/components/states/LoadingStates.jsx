@@ -1,11 +1,11 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
-export const LoadingState = () => (
+export const LoadingState = ({ message = 'Loading analysis data...' }) => (
   <div className="p-4 bg-white rounded-lg shadow animate-pulse">
     <div className="h-8 w-48 bg-gray-200 rounded mb-4"/>
     <div className="h-[400px] bg-gray-100 rounded flex items-center justify-center">
-      <span className="text-gray-500">Loading analysis data...</span>
+      <span className="text-gray-500">{message}</span>
     </div>
   </div>
 );

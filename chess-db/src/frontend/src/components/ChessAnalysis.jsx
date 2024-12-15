@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Search } from 'lucide-react';
 import { MoveDistributionChart, PerformanceTimeline } from './charts/ChessCharts';
 import { LoadingState, ErrorState } from './states/LoadingStates';
+import { AnalysisInterface } from './analysis/AnalysisInterface';
 
 // Main analysis component
 export default function ChessAnalysis() {
@@ -156,6 +156,13 @@ export default function ChessAnalysis() {
   // Render main analysis view
   return (
     <div className="space-y-6">
+      <AnalysisInterface
+        timeRange={timeRange}
+        dateRange={dateRange}
+        onTimeRangeChange={setTimeRange}
+        onDateRangeChange={handleDateChange}
+        onPlayerSelect={setPlayerId}
+      />
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
