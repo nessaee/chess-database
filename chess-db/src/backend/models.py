@@ -250,3 +250,88 @@ class OpeningStatsResponse(BaseModel):
             }
         }
     )
+
+
+
+
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List
+from datetime import datetime
+
+class OpeningAnalysis(BaseModel):
+    """Analysis of a player's performance with a specific opening"""
+    eco_code: str = Field(..., description="ECO code of the opening")
+    games_played: int = Field(..., description="Number of games with this opening")
+    wins: int = Field(..., description="Number of wins with this opening")
+    draws: int = Field(..., description="Number of draws with this opening")
+    win_rate: float = Field(..., description="Win percentage with this opening")
+    performance_score: float = Field(..., description="Overall performance score")
+    avg_moves: float = Field(..., description="Average game length with this opening")
+    played_white: bool = Field(..., description="Has played this opening as white")
+    played_black: bool = Field(..., description="Has played this opening as black")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "eco_code": "B07",
+                "games_played": 42,
+                "wins": 25,
+                "draws": 10,
+                "win_rate": 59.52,
+                "performance_score": 71.43,
+                "avg_moves": 35.8,
+                "played_white": True,
+                "played_black": True
+            }
+        }
+    )
+
+class DetailedPerformanceResponse(BaseModel):
+    """Enhanced player performance statistics over a time period"""
+    time_period: str = Field(..., description="Time period of analysis")
+    games_played: int = Field(..., description="Total games played")
+    wins: int = Field(..., description="Number of wins")
+    losses: int = Field(..., description="Number of losses")
+    draws: int = Field(..., description="Number of draws")
+    win_rate: float = Field(..., description="Win percentage")
+    avg_moves: float = Field(..., description="Average moves per game")
+    white_games: int = Field(..., description="Games played as white")
+    black_games: int = Field(..., description="Games played as black")
+    avg_elo: Optional[int] = Field(None, description="Average ELO rating")
+    elo_change: Optional[int] = Field(None, description="ELO rating change")
+    opening_diversity: float = Field(..., description="Opening diversity score")
+    avg_game_length: float = Field(..., description="Average game length")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "time_period": "2024-01",
+                "games_played": 50,
+                "wins": 25,
+                "losses": 15,
+                "draws": 10,
+                "win_rate": 62.5,
+                "avg_moves": 45.3,
+                "white_games": 26,
+                "black_games": 24,
+                "avg_elo": 2100,
+                "elo_change": 15,
+                "opening_diversity": 0.85,
+                "avg_game_length": 42.7
+            }
+        }
+    )
+
+class AnalyticsParameters(BaseModel):
+    """Parameters for analytics queries"""
+    time_grouping: str = Field(
+        "month",
+        description="Time period grouping (day, week, month, year)"
+    )
+    start_date: Optional[str] = Field(None, description="Start date for analysis")
+    end_date: Optional[str] = Field(None, description="End date for analysis")
+    min_games: Optional[int] = Field(5, description="Minimum games threshold")
+    time_period: Optional[str] = Field(
+        None,
+        description="Time period filter (1y, 6m, 3m, 1m)"
+    )

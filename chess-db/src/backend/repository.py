@@ -384,24 +384,24 @@ class AnalysisRepository:
                         {date_group} as period,
                         date,
                         CASE
-                            WHEN white_player_id = %(player_id)s THEN 'white'
+                            WHEN white_player_id = {player_id} THEN 'white'
                             ELSE 'black'
                         END as player_color,
                         CASE
-                            WHEN white_player_id = %(player_id)s THEN white_elo
+                            WHEN white_player_id = {player_id} THEN white_elo
                             ELSE black_elo
                         END as player_elo,
                         result,
                         (octet_length(moves) - 19) / 2 as move_count,
                         CASE
-                            WHEN (white_player_id = %(player_id)s AND result = '1-0') OR
-                                 (black_player_id = %(player_id)s AND result = '0-1')
+                            WHEN (white_player_id = {player_id} AND result = '1-0') OR
+                                 (black_player_id = {player_id} AND result = '0-1')
                                 THEN 1
                             ELSE 0
                         END as is_win,
                         CASE
-                            WHEN (white_player_id = %(player_id)s AND result = '0-1') OR
-                                 (black_player_id = %(player_id)s AND result = '1-0')
+                            WHEN (white_player_id = {player_id} AND result = '0-1') OR
+                                 (black_player_id = {player_id} AND result = '1-0')
                                 THEN 1
                             ELSE 0
                         END as is_loss,
@@ -410,10 +410,7 @@ class AnalysisRepository:
                             ELSE 0
                         END as is_draw
                     FROM games
-                    WHERE (white_player_id = %(player_id)s OR black_player_id = %(player_id)s)
-                    AND date IS NOT NULL
-                    AND date >= COALESCE(%(start_date)s::date, '1900-01-01')
-                    AND date <= COALESCE(%(end_date)s::date, CURRENT_DATE)
+                    WHERE (white_player_id = {player_id} OR black_player_id = {player_id})
                 )
                 SELECT
                     period::date as time_period,
@@ -427,6 +424,7 @@ class AnalysisRepository:
                     ROUND(AVG(player_elo)::numeric, 0) as elo_rating,
                     ROUND((SUM(is_win)::float / COUNT(*) * 100)::numeric, 2) as win_rate
                 FROM player_games
+                WHERE date IS NOT NULL
                 GROUP BY period
                 ORDER BY period ASC;
             """)
