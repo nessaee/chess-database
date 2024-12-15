@@ -721,12 +721,12 @@ class AnalysisRepository:
             )
             raise ValueError(f"Error analyzing move count distribution: {str(e)}")    
     
-    async def search_players(self, search_query: str) -> List[Dict[str, Any]]:
+    async def search_players(self, search_query: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Search for players by name with their most recent ELO rating.
         
         Args:
-            search_query: String to search for in player names
+            search_query: Optional string to search for in player names
             
         Returns:
             List of dicts containing player id, name and most recent ELO
@@ -735,6 +735,9 @@ class AnalysisRepository:
             SQLAlchemyError: On database operation failures
         """
         try:
+            if not search_query:
+                return []
+                
             query = text("""
                 SELECT id, name, 
                        (SELECT elo 

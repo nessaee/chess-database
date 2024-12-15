@@ -251,7 +251,7 @@ async def get_player_performance(
 
 @app.get("/players/search")
 async def search_players(
-    q: str,
+    q: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Search players by name"""
