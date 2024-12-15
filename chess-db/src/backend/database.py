@@ -27,3 +27,13 @@ async def init_db():
             print("Created database tables.")
         else:
             print("Database tables already exist, skipping creation.")
+
+
+# Database session dependency
+async def get_db() -> AsyncSession:
+    """Database session manager"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        await db.close()
