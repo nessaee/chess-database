@@ -1,0 +1,1188 @@
+# File Concatenation Report
+# Generated: Sat Dec 14 06:22:09 PM MST 2024
+# Directory: /home/ameer/Sync/github/ECE501C/chess-db/src
+
+# Patterns:
+#   Include: jsx
+css
+html
+#   Exclude: 
+#   Ignore: node_modules
+
+### File: ./frontend/src/App.css
+### Size: 564 bytes
+### Content:
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+### End of ./frontend/src/App.css
+
+### File: ./frontend/src/App.jsx
+### Size: 1830 bytes
+### Content:
+// src/App.jsx
+import React, { useState } from 'react';
+// Ensure proper path resolution for components
+import ChessGamesViewer from './components/ChessGamesViewer';
+import ChessAnalysis from './components/ChessAnalysis';
+
+/**
+ * Root application component providing navigation and view management.
+ * Handles switching between game viewer and analysis interfaces.
+ * 
+ * @component
+ * @returns {JSX.Element} The root application interface
+ */
+function App() {
+  // Track active view state with clear intent
+  const [activeView, setActiveView] = useState('games');
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      {/* Navigation Controls */}
+      <nav className="max-w-6xl mx-auto mb-4">
+        <div className="flex gap-4 bg-white p-2 rounded-lg shadow-sm">
+          <button 
+            onClick={() => setActiveView('games')}
+            className={`px-4 py-2 rounded transition-colors duration-200 ${
+              activeView === 'games' 
+                ? 'bg-blue-500 text-white' 
+                : 'hover:bg-gray-100'
+            }`}
+            aria-current={activeView === 'games' ? 'page' : undefined}
+          >
+            Games
+          </button>
+          <button 
+            onClick={() => setActiveView('analysis')}
+            className={`px-4 py-2 rounded transition-colors duration-200 ${
+              activeView === 'analysis' 
+                ? 'bg-blue-500 text-white' 
+                : 'hover:bg-gray-100'
+            }`}
+            aria-current={activeView === 'analysis' ? 'page' : undefined}
+          >
+            Analysis
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="max-w-6xl mx-auto">
+        {activeView === 'games' ? <ChessGamesViewer /> : <ChessAnalysis />}
+      </main>
+    </div>
+  );
+}
+
+export default App;
+### End of ./frontend/src/App.jsx
+
+### File: ./frontend/src/components/ItemManagement.jsx
+### Size: 5976 bytes
+### Content:
+import React, { useState, useEffect, useCallback } from 'react';
+import { PlusCircle, Trash2, Edit2, Save, X } from 'lucide-react';
+
+export default function ItemManagement() {
+  const [items, setItems] = useState([]);
+  const [newItem, setNewItem] = useState({ name: '', description: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
+  const fetchItems = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/items`);
+      const data = await response.json();
+      setItems(data);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  const createItem = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newItem)
+      });
+      if (response.ok) {
+        setNewItem({ name: '', description: '' });
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error creating item:', error);
+    }
+  };
+
+  const updateItem = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/items/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      if (response.ok) {
+        setEditingId(null);
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
+  };
+
+  const deleteItem = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/items/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const startEditing = (item) => {
+    setEditingId(item.id);
+    setEditForm({ name: item.name, description: item.description });
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Item Management</h1>
+      
+      {/* Create Form */}
+      <form onSubmit={createItem} className="mb-8 bg-white p-4 rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-4">Add New Item</h2>
+        <div className="flex gap-4">
+          <input
+            type="text"
+            placeholder="Item Name"
+            value={newItem.name}
+            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+            className="flex-1 p-2 border rounded"
+          />
+          <input
+            type="text"
+            placeholder="Description"
+            value={newItem.description}
+            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+            className="flex-1 p-2 border rounded"
+          />
+          <button
+            type="submit"
+            className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-600"
+          >
+            <PlusCircle size={20} />
+            Add Item
+          </button>
+        </div>
+      </form>
+
+      {/* Items List */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="grid grid-cols-1 gap-4 p-4">
+          {items.map(item => (
+            <div key={item.id} className="border rounded p-4">
+              {editingId === item.id ? (
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="flex-1 p-2 border rounded"
+                  />
+                  <input
+                    type="text"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    className="flex-1 p-2 border rounded"
+                  />
+                  <button
+                    onClick={() => updateItem(item.id)}
+                    className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-600"
+                  >
+                    <Save size={20} />
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-gray-600"
+                  >
+                    <X size={20} />
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="text-gray-600">{item.description}</p>
+                    <p className="text-sm text-gray-500">Created: {new Date(item.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEditing(item)}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-yellow-600"
+                    >
+                      <Edit2 size={20} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteItem(item.id)}
+                      className="bg-red-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-red-600"
+                    >
+                      <Trash2 size={20} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+### End of ./frontend/src/components/ItemManagement.jsx
+
+### File: ./frontend/src/components/states/LoadingStates.jsx
+### Size: 1445 bytes
+### Content:
+import React from 'react';
+import { AlertCircle } from 'lucide-react';
+
+export const LoadingState = () => (
+  <div className="p-4 bg-white rounded-lg shadow animate-pulse">
+    <div className="h-8 w-48 bg-gray-200 rounded mb-4"/>
+    <div className="h-[400px] bg-gray-100 rounded flex items-center justify-center">
+      <span className="text-gray-500">Loading analysis data...</span>
+    </div>
+  </div>
+);
+
+export const ErrorState = ({ error, onRetry }) => (
+  <div className="p-6 bg-white rounded-lg shadow-lg border border-red-100">
+    <div className="flex items-start space-x-4">
+      <div className="flex-shrink-0">
+        <AlertCircle className="h-6 w-6 text-red-500" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          Analysis Error
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          {error?.message || 'An unexpected error occurred while analyzing data'}
+        </p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 
+                     rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 
+                     focus:ring-red-500 focus:ring-offset-2 transition-colors
+                     text-sm font-medium"
+          >
+            Retry Analysis
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+### End of ./frontend/src/components/states/LoadingStates.jsx
+
+### File: ./frontend/src/components/ChessGamesViewer.jsx
+### Size: 15278 bytes
+### Content:
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Chessboard } from 'react-chessboard';
+import { Chess } from 'chess.js';
+import { Calendar, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
+
+// Utility functions
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'Date unknown';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Date unknown';
+    if (date > new Date()) return 'Scheduled';
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (e) {
+    console.warn('Error parsing date:', e);
+    return 'Date unknown';
+  }
+};
+
+// Component for the game filters section
+const GameFilters = ({ searchTerm, setSearchTerm, dateRange, onDateChange, onSearch }) => (
+  <form onSubmit={onSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Player Search</label>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by player name"
+          className="pl-10 p-2 w-full border rounded"
+        />
+      </div>
+    </div>
+    
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+      <div className="relative">
+        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <input
+          type="date"
+          value={dateRange.start}
+          onChange={(e) => onDateChange('start', e.target.value)}
+          max={dateRange.end || undefined}
+          className="pl-10 p-2 w-full border rounded"
+        />
+      </div>
+    </div>
+    
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+      <div className="relative">
+        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <input
+          type="date"
+          value={dateRange.end}
+          onChange={(e) => onDateChange('end', e.target.value)}
+          min={dateRange.start || undefined}
+          className="pl-10 p-2 w-full border rounded"
+        />
+      </div>
+    </div>
+
+    <div className="md:col-span-3 flex justify-end">
+      <button
+        type="submit"
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Apply Filters
+      </button>
+    </div>
+  </form>
+);
+
+// Component for the game list
+const GameList = ({ games, selectedGame, onGameSelect, isLoading, error }) => {
+  if (isLoading) return <div className="p-4 text-center text-gray-600">Loading games...</div>;
+  if (error) return <div className="p-4 text-center text-red-600">{error}</div>;
+  if (!games.length) return <div className="p-4 text-center text-gray-600">No games found</div>;
+
+  return (
+    <div className="max-h-[600px] overflow-y-auto">
+      {games.map(game => (
+        <div
+          key={game.id}
+          onClick={() => onGameSelect(game)}
+          className={`p-4 border-b cursor-pointer transition-colors hover:bg-gray-50 
+            ${selectedGame?.id === game.id ? 'bg-blue-50' : ''}`}
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="font-medium text-gray-900">
+                {game.white_player?.name || 'Unknown'} vs {game.black_player?.name || 'Unknown'}
+              </div>
+              <div className="text-sm text-gray-600">{formatDate(game.date)}</div>
+            </div>
+            <div className="text-sm font-medium text-gray-900">{game.result}</div>
+          </div>
+          <div className="mt-1 text-sm text-gray-500">ECO: {game.eco}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Component for the game controls
+const GameControls = ({ moveIndex, totalMoves, onMoveChange, disabled }) => (
+  <div className="flex items-center justify-between bg-white border rounded-lg p-2 mb-4">
+    <button
+      onClick={() => onMoveChange(0)}
+      disabled={disabled || moveIndex === 0}
+      className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+    >
+      <SkipBack className="h-5 w-5" />
+    </button>
+    <button
+      onClick={() => onMoveChange(Math.max(0, moveIndex - 1))}
+      disabled={disabled || moveIndex === 0}
+      className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+    >
+      <ChevronLeft className="h-5 w-5" />
+    </button>
+    <div className="text-sm text-gray-600 font-medium">
+      {disabled ? '-' : `Move ${moveIndex} of ${totalMoves}`}
+    </div>
+    <button
+      onClick={() => onMoveChange(moveIndex + 1)}
+      disabled={disabled || moveIndex >= totalMoves}
+      className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+    >
+      <ChevronRight className="h-5 w-5" />
+    </button>
+    <button
+      onClick={() => onMoveChange(totalMoves)}
+      disabled={disabled || moveIndex >= totalMoves}
+      className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+    >
+      <SkipForward className="h-5 w-5" />
+    </button>
+  </div>
+);
+
+// Component for the game details
+const GameDetails = ({ game }) => (
+  <div className="bg-white border rounded-lg p-4">
+    <h3 className="font-medium mb-2">Game Details</h3>
+    <div className="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <div className="text-gray-600">White</div>
+        <div className="font-medium">{game.white_player?.name || 'Unknown'}</div>
+      </div>
+      <div>
+        <div className="text-gray-600">Black</div>
+        <div className="font-medium">{game.black_player?.name || 'Unknown'}</div>
+      </div>
+      <div>
+        <div className="text-gray-600">Date</div>
+        <div className="font-medium">{formatDate(game.date)}</div>
+      </div>
+      <div>
+        <div className="text-gray-600">Result</div>
+        <div className="font-medium">{game.result}</div>
+      </div>
+      <div>
+        <div className="text-gray-600">ECO</div>
+        <div className="font-medium">{game.eco}</div>
+      </div>
+    </div>
+  </div>
+);
+
+// Component for the moves list
+const MovesList = ({ moves, moveIndex, onMoveSelect, activeItemRef, moveListRef }) => {
+  if (!moves.length) return null;
+
+  const moveRows = [];
+  for (let i = 0; i < moves.length; i += 2) {
+    const whiteMove = moves[i];
+    const blackMove = moves[i + 1];
+    const isWhiteActive = i === moveIndex - 1;
+    const isBlackActive = blackMove && (i + 1) === moveIndex - 1;
+
+    moveRows.push(
+      <div 
+        key={i} 
+        className="grid grid-cols-12 gap-1 hover:bg-gray-50 text-sm"
+        ref={isWhiteActive || isBlackActive ? activeItemRef : null}
+      >
+        <div className="col-span-2 text-gray-500 pl-2">
+          {whiteMove.moveNumber}.
+        </div>
+        <div 
+          className={`col-span-5 px-2 py-1 cursor-pointer rounded transition-colors
+            ${isWhiteActive ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+          onClick={() => onMoveSelect(i + 1)}
+        >
+          {whiteMove.san}
+        </div>
+        {blackMove && (
+          <div 
+            className={`col-span-5 px-2 py-1 cursor-pointer rounded transition-colors
+              ${isBlackActive ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+            onClick={() => onMoveSelect(i + 2)}
+          >
+            {blackMove.san}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg border h-[320px] flex flex-col">
+      <div className="sticky top-0 z-10 bg-gray-50 border-b grid grid-cols-12 gap-1 text-sm font-medium p-2">
+        <div className="col-span-2">#</div>
+        <div className="col-span-5">White</div>
+        <div className="col-span-5">Black</div>
+      </div>
+      <div ref={moveListRef} className="flex-1 overflow-y-auto p-2 scroll-smooth">
+        {moveRows}
+      </div>
+    </div>
+  );
+};
+
+// Main ChessGamesViewer component
+export default function ChessGamesViewer() {
+  // Base state
+  const [games, setGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [chess, setChess] = useState(new Chess());
+  const [moveIndex, setMoveIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  // Game analysis state
+  const [currentMoves, setCurrentMoves] = useState([]);
+
+  // Refs for scroll management
+  const moveListRef = useRef(null);
+  const activeItemRef = useRef(null);
+
+  // API configuration
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
+  // Utility functions for game management
+  const generateSANMoves = useCallback((uciMoves) => {
+    const tempChess = new Chess();
+    return uciMoves.split(' ').map(uciMove => {
+      try {
+        const move = {
+          from: uciMove.slice(0, 2),
+          to: uciMove.slice(2, 4),
+          promotion: uciMove[4]
+        };
+        const san = tempChess.move(move).san;
+        const isWhite = tempChess.turn() === 'b';
+        const fullMove = tempChess.moveNumber();
+        return {
+          uci: uciMove,
+          san,
+          color: isWhite ? 'white' : 'black',
+          moveNumber: isWhite ? fullMove : null
+        };
+      } catch (e) {
+        console.error('Invalid move:', uciMove, e);
+        return null;
+      }
+    }).filter(Boolean);
+  }, []);
+
+  // Event handlers
+  const handleGameSelect = useCallback((game) => {
+    setSelectedGame(game);
+    setMoveIndex(0);
+    setChess(new Chess());
+    setCurrentMoves(generateSANMoves(game.moves));
+  }, [generateSANMoves]);
+
+  const handleDateChange = useCallback((type, value) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date selected');
+      return;
+    }
+    setDateRange(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  }, []);
+
+  // Effect for scrolling active move into view
+  useEffect(() => {
+    if (activeItemRef.current) {
+      activeItemRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [moveIndex]);
+
+  // Effect for keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (!selectedGame) return;
+      
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setMoveIndex(prev => Math.max(0, prev - 1));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setMoveIndex(prev => Math.min(currentMoves.length, prev + 1));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedGame, currentMoves.length]);
+
+  // Games fetching logic
+  const fetchGames = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const params = new URLSearchParams();
+      
+      if (searchQuery) params.append('player_name', searchQuery);
+      if (dateRange.start) params.append('start_date', dateRange.start);
+      if (dateRange.end) params.append('end_date', dateRange.end);
+
+      const response = await fetch(`${API_URL}/games?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch games');
+      }
+      
+      const data = await response.json();
+      setGames(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching games:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_URL, searchQuery, dateRange]);
+
+  // Effect to fetch games when filters change
+  useEffect(() => {
+    fetchGames();
+  }, [fetchGames]);
+
+
+  // Game position management
+  const updatePosition = useCallback(() => {
+    if (!selectedGame) return;
+    
+    const moves = selectedGame.moves.split(' ');
+    const newChess = new Chess();
+    
+    for (let i = 0; i < moveIndex && i < moves.length; i++) {
+      try {
+        newChess.move({
+          from: moves[i].slice(0, 2),
+          to: moves[i].slice(2, 4),
+          promotion: moves[i][4]
+        });
+      } catch (e) {
+        console.error('Invalid move:', moves[i], e);
+      }
+    }
+    
+    setChess(newChess);
+  }, [selectedGame, moveIndex]);
+
+  // Effect to update board position
+  useEffect(() => {
+    updatePosition();
+  }, [updatePosition]);
+
+
+  const handleSearch = useCallback((e) => {
+    e.preventDefault();
+    setSearchQuery(searchTerm);
+  }, [searchTerm]);
+
+  const handleMoveSelect = useCallback((index) => {
+    setMoveIndex(index);
+  }, []);
+
+  return (
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold mb-6">Chess Games Explorer</h1>
+        
+        <GameFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          dateRange={dateRange}
+          onDateChange={handleDateChange}
+          onSearch={handleSearch}
+        />
+        
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-1/4">
+            <h2 className="text-xl font-semibold mb-4">Game List</h2>
+            <div className="border rounded-lg overflow-hidden">
+              <GameList
+                games={games}
+                selectedGame={selectedGame}
+                onGameSelect={handleGameSelect}
+                isLoading={isLoading}
+                error={error}
+              />
+            </div>
+          </div>
+
+          <div className="lg:w-3/4">
+            <h2 className="text-xl font-semibold mb-4">Game Viewer</h2>
+            {selectedGame ? (
+              <div className="flex flex-col xl:flex-row gap-6">
+                <div className="xl:w-[480px]">
+                  <Chessboard 
+                    position={chess.fen()} 
+                    boardWidth={480}
+                    arePiecesDraggable={false}
+                  />
+                  <GameControls
+                    moveIndex={moveIndex}
+                    totalMoves={currentMoves.length}
+                    onMoveChange={setMoveIndex}
+                    disabled={!selectedGame}
+                  />
+                  <GameDetails game={selectedGame} />
+                </div>
+
+                <div className="xl:flex-1">
+                  <div className="sticky top-0">
+                    <h3 className="font-medium mb-2">Moves</h3>
+                    <MovesList
+                      moves={currentMoves}
+                      moveIndex={moveIndex}
+                      onMoveSelect={setMoveIndex}
+                      activeItemRef={activeItemRef}
+                      moveListRef={moveListRef}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[480px] flex items-center justify-center text-gray-500 border rounded-lg">
+                Select a game to view
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+### End of ./frontend/src/components/ChessGamesViewer.jsx
+
+### File: ./frontend/src/components/ChessAnalysis.jsx
+### Size: 5240 bytes
+### Content:
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar, Search } from 'lucide-react';
+import { MoveDistributionChart, PerformanceTimeline } from './charts/ChessCharts';
+import { LoadingState, ErrorState } from './states/LoadingStates';
+
+// Main analysis component
+export default function ChessAnalysis() {
+  // State management
+  const [moveData, setMoveData] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [playerId, setPlayerId] = useState(null);
+  const [timeRange, setTimeRange] = useState('monthly');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Fetch move count distribution data
+  const fetchMoveData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_URL}/analysis/move-counts`);
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Process and validate the data
+      const processedData = data
+        .map(item => ({
+          ...item,
+          actual_full_moves: Number(item.actual_full_moves),
+          number_of_games: Number(item.number_of_games),
+          avg_bytes: Number(item.avg_bytes),
+          avg_stored_count: Number(item.avg_stored_count)
+        }))
+        .filter(item => (
+          !isNaN(item.actual_full_moves) &&
+          !isNaN(item.number_of_games) &&
+          item.actual_full_moves >= 0 &&
+          item.number_of_games > 0
+        ))
+        .sort((a, b) => a.actual_full_moves - b.actual_full_moves);
+
+      setMoveData(processedData);
+    } catch (err) {
+      setError(err);
+      console.error('Analysis data fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_URL]);
+
+  // Fetch player performance data if player ID is available
+  const fetchPerformanceData = useCallback(async () => {
+    if (!playerId) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        time_range: timeRange,
+        ...(dateRange.start && { start_date: dateRange.start }),
+        ...(dateRange.end && { end_date: dateRange.end })
+      });
+
+      const response = await fetch(
+        `${API_URL}/players/${playerId}/performance?${params}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setPerformanceData(data);
+    } catch (err) {
+      setError(err);
+      console.error('Performance data fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_URL, playerId, timeRange, dateRange]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchMoveData();
+  }, [fetchMoveData]);
+
+  useEffect(() => {
+    if (playerId) {
+      fetchPerformanceData();
+    }
+  }, [fetchPerformanceData, playerId]);
+
+  // Handle date range changes
+  const handleDateChange = useCallback((type, value) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date selected');
+      return;
+    }
+
+    setDateRange(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  }, []);
+
+  // Render loading state
+  if (isLoading) {
+    return <LoadingState />;
+  }
+
+  // Render error state
+  if (error) {
+    return <ErrorState error={error} onRetry={fetchMoveData} />;
+  }
+
+  // Render main analysis view
+  return (
+    <div className="space-y-6">
+      {/* Summary Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-medium text-gray-500">Total Games Analyzed</h3>
+          <p className="mt-1 text-2xl font-semibold text-gray-900">
+            {moveData.reduce((sum, d) => sum + d.number_of_games, 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-medium text-gray-500">Average Move Count</h3>
+          <p className="mt-1 text-2xl font-semibold text-gray-900">
+            {(moveData.reduce((sum, d) => sum + d.actual_full_moves * d.number_of_games, 0) / 
+              moveData.reduce((sum, d) => sum + d.number_of_games, 0)).toFixed(1)}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-medium text-gray-500">Most Common Length</h3>
+          <p className="mt-1 text-2xl font-semibold text-gray-900">
+            {moveData.reduce((max, d) => d.number_of_games > max.number_of_games ? d : max).actual_full_moves} moves
+          </p>
+        </div>
+      </div>
+
+      {/* Move Distribution Chart */}
+      <MoveDistributionChart data={moveData} />
+
+      {/* Player Performance Timeline (if player data is available) */}
+      {performanceData.length > 0 && (
+        <PerformanceTimeline 
+          data={performanceData}
+          title="Player Performance Timeline"
+        />
+      )}
+    </div>
+  );
+}
+
+### End of ./frontend/src/components/ChessAnalysis.jsx
+
+### File: ./frontend/src/components/charts/ChessCharts.jsx
+### Size: 2800 bytes
+### Content:
+import React from 'react';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend
+} from 'recharts';
+import { MoveCountTooltip, PerformanceTooltip } from '../tooltips/ChessTooltips';
+
+export const MoveDistributionChart = ({ data }) => (
+  <div className="bg-white rounded-lg shadow p-4">
+    <h2 className="text-xl font-bold mb-4">Move Count Distribution</h2>
+    <div className="h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 40, bottom: 20 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+          <XAxis 
+            dataKey="actual_full_moves"
+            label={{ value: 'Number of Moves', position: 'bottom', offset: -10 }}
+          />
+          <YAxis 
+            label={{ 
+              value: 'Number of Games', 
+              angle: -90, 
+              position: 'insideLeft',
+              offset: -10 
+            }}
+          />
+          <Tooltip content={<MoveCountTooltip />} />
+          <Bar
+            dataKey="number_of_games"
+            fill="#8884d8"
+            name="Games"
+            radius={[4, 4, 0, 0]}
+            className="hover:opacity-80 transition-opacity"
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
+
+export const PerformanceTimeline = ({ data, title }) => (
+  <div className="bg-white rounded-lg shadow p-4">
+    <h2 className="text-xl font-bold mb-4">{title || 'Performance Timeline'}</h2>
+    <div className="h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 20, right: 30, left: 40, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+          <XAxis 
+            dataKey="time_period"
+            label={{ value: 'Time Period', position: 'bottom', offset: -10 }}
+          />
+          <YAxis 
+            yAxisId="rate"
+            label={{ value: 'Win Rate (%)', angle: -90, position: 'insideLeft', offset: 10 }}
+          />
+          <YAxis 
+            yAxisId="games"
+            orientation="right"
+            label={{ value: 'Games Played', angle: 90, position: 'insideRight', offset: 10 }}
+          />
+          <Tooltip content={<PerformanceTooltip />} />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="win_rate"
+            stroke="#10B981"
+            yAxisId="rate"
+            name="Win Rate"
+          />
+          <Line
+            type="monotone"
+            dataKey="games_played"
+            stroke="#6366F1"
+            yAxisId="games"
+            name="Games Played"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
+
+### End of ./frontend/src/components/charts/ChessCharts.jsx
+
+### File: ./frontend/src/components/tooltips/ChessTooltips.jsx
+### Size: 1543 bytes
+### Content:
+import React from 'react';
+
+export const MoveCountTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0].payload;
+  return (
+    <div className="bg-white p-4 border rounded shadow-lg">
+      <h4 className="font-semibold mb-2">Move Count Analysis</h4>
+      <div className="space-y-1 text-sm">
+        <p>Moves: {data.actual_full_moves}</p>
+        <p>Games: {data.number_of_games.toLocaleString()}</p>
+        <p>Average Size: {data.avg_bytes.toFixed(1)} bytes</p>
+        {data.avg_stored_count && (
+          <p>Average Stored Count: {data.avg_stored_count.toFixed(1)}</p>
+        )}
+        <div className="mt-2 text-xs text-gray-500">
+          <p>Results: {data.results}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const PerformanceTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0].payload;
+  return (
+    <div className="bg-white p-4 border rounded shadow-lg">
+      <h4 className="font-semibold mb-2">{data.time_period}</h4>
+      <div className="space-y-1 text-sm">
+        <p>Games Played: {data.games_played.toLocaleString()}</p>
+        <p>Win Rate: {data.win_rate.toFixed(1)}%</p>
+        <p>Average Moves: {data.avg_moves.toFixed(1)}</p>
+        <div className="mt-2 border-t pt-2">
+          <p>White Games: {data.white_games}</p>
+          <p>Black Games: {data.black_games}</p>
+          {data.elo_rating && <p>ELO Rating: {data.elo_rating}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+### End of ./frontend/src/components/tooltips/ChessTooltips.jsx
+
+### File: ./frontend/src/index.jsx
+### Size: 253 bytes
+### Content:
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+### End of ./frontend/src/index.jsx
+
+### File: ./frontend/src/index.css
+### Size: 427 bytes
+### Content:
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+### End of ./frontend/src/index.css
+
+### File: ./frontend/index.html
+### Size: 390 bytes
+### Content:
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Chess game analysis and visualization platform" />
+    <title>Chess Analysis</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
+### End of ./frontend/index.html
+
+# Summary
+Processed: 11 files
+Total size: 35746 bytes
