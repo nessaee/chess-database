@@ -607,14 +607,7 @@ class AnalysisRepository:
             )
             raise ValueError(f"Error analyzing opening statistics: {str(e)}")
             
-    def _get_opening_name(self, eco_code: str) -> str:
-        """
-        Get opening name from ECO code. This is a placeholder - you would want to
-        implement this with a proper opening database or lookup table.
-        """
-        # TODO: Implement proper ECO code to opening name mapping
-        return eco_code  # Return ECO code as placeholder
-        def _get_opening_name(self, eco_code: str) -> str:
+    async def _get_opening_name(self, eco_code: str) -> str:
         """
         Get opening name from ECO code. This is a placeholder - you would want to
         implement this with a proper opening database or lookup table.
@@ -727,6 +720,7 @@ class AnalysisRepository:
                 exc_info=True
             )
             raise ValueError(f"Error analyzing move count distribution: {str(e)}")    
+    
     async def search_players(self, search_query: str) -> List[Dict[str, Any]]:
         """
         Search for players by name with their most recent ELO rating.
@@ -786,112 +780,7 @@ class AnalysisRepository:
         except SQLAlchemyError as e:
             self.logger.error(f"Player search error: {str(e)}")
             raise
-        try:
-            # Define analysis query with explicit column types and data validation
-            query = text("""
-                WITH game_moves_analysis AS (
-                    SELECT
-                        -- Calculate actual moves from binary data length
-                        -- Subtract header size (19 bytes) and divide remaining by 2 bytes per move
-                        (octet_length(moves) - 19) / 2 as actual_full_moves,
-                        
-                        -- Extract stored move count from header (bytes 17-18)
-                        get_byte(moves, 17) << 8 | get_byte(moves, 18) as stored_move_count,
-                        
-                        -- Game metadata
-                        result,
-                        octet_length(moves) as total_bytes
-                        
-                    FROM games
-                    WHERE moves IS NOT NULL
-                        AND octet_length(moves) >= 19  -- Ensure minimum header size
-                )
-                SELECT
-                    actual_full_moves,
-                    COUNT(*) as number_of_games,
-                    ROUND(AVG(total_bytes)::numeric, 2) as avg_bytes,
-                    string_agg(DISTINCT result, ', ' ORDER BY result) as results,
-                    MIN(stored_move_count) as min_stored_count,
-                    MAX(stored_move_count) as max_stored_count,
-                    ROUND(AVG(stored_move_count)::numeric, 2) as avg_stored_count
-                    
-                FROM game_moves_analysis
-                WHERE 
-                    -- Filter out invalid move counts
-                    actual_full_moves >= 0
-                    AND actual_full_moves <= 500  -- Reasonable maximum game length
-                    
-                GROUP BY actual_full_moves
-                ORDER BY actual_full_moves ASC;
-            """)
-
-            # Execute query with explicit transaction handling
-            result = self.db.execute(query)
-            raw_rows = result.fetchall()
-
-            # Process and validate results
-            processed_results: List[MoveCountStats] = []
-            
-            for row in raw_rows:
-                try:
-                    # Validate numeric fields
-                    actual_moves = int(row[0])
-                    num_games = int(row[1])
-                    avg_bytes = float(row[2])
-                    min_count = int(row[4]) if row[4] is not None else None
-                    max_count = int(row[5]) if row[5] is not None else None
-                    avg_count = float(row[6]) if row[6] is not None else 0.0
-
-                    # Validate value ranges
-                    if not (0 <= actual_moves <= 500):
-                        self.logger.warning(
-                            f"Invalid move count detected: {actual_moves}"
-                        )
-                        continue
-
-                    if num_games <= 0:
-                        self.logger.warning(
-                            f"Invalid game count: {num_games} for {actual_moves} moves"
-                        )
-                        continue
-
-                    processed_row = MoveCountStats(
-                        actual_full_moves=actual_moves,
-                        number_of_games=num_games,
-                        avg_bytes=avg_bytes,
-                        results=str(row[3]),
-                        min_stored_count=min_count,
-                        max_stored_count=max_count,
-                        avg_stored_count=avg_count
-                    )
-                    processed_results.append(processed_row)
-
-                except (TypeError, ValueError) as e:
-                    self.logger.warning(
-                        f"Error processing row: {row}",
-                        exc_info=e
-                    )
-                    continue
-
-            # Validate final result set
-            if not processed_results:
-                self.logger.warning("No valid move count data found")
-                return []
-
-            return processed_results
-
-        except SQLAlchemyError as e:
-            error_time = datetime.utcnow().isoformat()
-            self.logger.error(
-                "Move count analysis failed",
-                extra={
-                    "timestamp": error_time,
-                    "error_type": type(e).__name__,
-                    "error_details": str(e)
-                },
-                exc_info=True
-            )
-            raise ValueError(f"Error analyzing move count distribution: {str(e)}")
+        
 
     async def get_move_count_distribution(self) -> List[MoveCountStats]:
         """
