@@ -256,49 +256,8 @@ async def search_players(
 ):
     """Search players by name"""
     try:
-        query = text("""
-            SELECT id, name, 
-                   (SELECT elo 
-                    FROM (
-                        SELECT CASE 
-                            WHEN white_player_id = p.id THEN white_elo
-                            ELSE black_elo
-                        END as elo
-                        FROM games g
-                        WHERE (white_player_id = p.id OR black_player_id = p.id)
-                        AND (white_elo > 0 OR black_elo > 0)
-                        ORDER BY date DESC
-                        LIMIT 1
-                    ) recent_elo
-                    WHERE elo > 0
-                   ) as elo
-            FROM players p
-            WHERE name ILIKE :query
-            ORDER BY 
-                CASE WHEN name ILIKE :exact_query THEN 0
-                     WHEN name ILIKE :start_query THEN 1
-                     ELSE 2
-                END,
-                LENGTH(name),
-                name
-            LIMIT 10
-        """)
-        
-        result = await db.execute(
-            query,
-            {
-                "query": f"%{q}%",
-                "exact_query": q,
-                "start_query": f"{q}%"
-            }
-        )
-        
-        players = [
-            {"id": row[0], "name": row[1], "elo": row[2]}
-            for row in result.fetchall()
-        ]
-        
-        return players
+        repo = AnalysisRepository(db)
+        return await repo.search_players(q)
     except Exception as e:
         logger.error(f"Player search error: {str(e)}")
         raise HTTPException(
