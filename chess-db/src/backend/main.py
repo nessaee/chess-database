@@ -58,7 +58,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "http://frontend:5173"
+        "http://frontend:5173",
+        "http://192.168.1.30:5173"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
@@ -275,6 +276,9 @@ async def get_player_openings(
         return opening_stats
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 if __name__ == "__main__":
     import uvicorn
