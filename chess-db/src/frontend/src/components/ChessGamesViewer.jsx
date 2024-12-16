@@ -101,7 +101,7 @@ const GameList = ({ games, selectedGame, onGameSelect, isLoading, error }) => {
           <div className="flex justify-between items-start">
             <div>
               <div className="font-medium text-gray-900">
-                {game.white_player?.name || 'Unknown'} vs {game.black_player?.name || 'Unknown'}
+                {game.white_player_name || 'Unknown'} vs {game.black_player_name || 'Unknown'}
               </div>
               <div className="text-sm text-gray-600">{formatDate(game.date)}</div>
             </div>
@@ -158,11 +158,11 @@ const GameDetails = ({ game }) => (
     <div className="grid grid-cols-2 gap-4 text-sm">
       <div>
         <div className="text-gray-600">White</div>
-        <div className="font-medium">{game.white_player?.name || 'Unknown'}</div>
+        <div className="font-medium">{game.white_player_name || 'Unknown'}</div>
       </div>
       <div>
         <div className="text-gray-600">Black</div>
-        <div className="font-medium">{game.black_player?.name || 'Unknown'}</div>
+        <div className="font-medium">{game.black_player_name || 'Unknown'}</div>
       </div>
       <div>
         <div className="text-gray-600">Date</div>
