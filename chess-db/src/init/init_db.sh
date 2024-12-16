@@ -10,7 +10,7 @@ set -e
 DB_NAME="chess"
 DB_USER="postgres"
 DB_PASSWORD="chesspass"
-DB_PORT="5434"
+DB_PORT="5433"
 DB_HOST="localhost"
 CONTAINER_NAME="src-db-1"
 
