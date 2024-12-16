@@ -7,7 +7,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
 
-from ..models import GameDB, GameResponse, PlayerDB
+from ..models.game import GameDB, GameResponse
+from ..models.player import PlayerDB
 from .decoder import GameDecoder
 from ..common.validation import DateHandler
 from ..common.errors import DatabaseOperationError, EntityNotFoundError
