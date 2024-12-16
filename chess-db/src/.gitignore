@@ -3,5 +3,5 @@
 *dist
 archive
 .idea
-*.txt
 *.log
+sql/draft

@@ -23,7 +23,7 @@ import chess
 import sys
 import bitarray
 from typing import Optional, Tuple, List
-from encode import ChessMoveEncoder
+from backend.utils.encode import ChessMoveEncoder
 class TemporaryDirectory:
     def __init__(self, prefix=None):
         self.prefix = prefix

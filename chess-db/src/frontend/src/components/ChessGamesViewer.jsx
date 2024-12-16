@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import { Calendar, Search, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, SkipBack, SkipForward } from 'lucide-react';
+import PlayerSearch from './PlayerSearch';
 
 // Utility functions
 const formatDate = (dateStr) => {
@@ -22,57 +23,62 @@ const formatDate = (dateStr) => {
 };
 
 // Component for the game filters section
-const GameFilters = ({ searchTerm, setSearchTerm, dateRange, onDateChange, onSearch }) => (
-  <form onSubmit={onSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Player Search</label>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by player name"
-          className="pl-10 p-2 w-full border rounded"
-        />
+const GameFilters = ({ onPlayerSelect, dateRange, onDateChange, onSearch, onlyDated, setOnlyDated }) => (
+  <form onSubmit={onSearch} className="container mx-auto p-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Player Search</label>
+        <PlayerSearch onPlayerSelect={onPlayerSelect} />
       </div>
-    </div>
-    
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-      <div className="relative">
-        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <input
-          type="date"
-          value={dateRange.start}
-          onChange={(e) => onDateChange('start', e.target.value)}
-          max={dateRange.end || undefined}
-          className="pl-10 p-2 w-full border rounded"
-        />
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+        <div className="relative">
+          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={(e) => onDateChange('start', e.target.value)}
+            max={dateRange.end || undefined}
+            className="pl-10 p-2 w-full border rounded"
+          />
+        </div>
       </div>
-    </div>
-    
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-      <div className="relative">
-        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <input
-          type="date"
-          value={dateRange.end}
-          onChange={(e) => onDateChange('end', e.target.value)}
-          min={dateRange.start || undefined}
-          className="pl-10 p-2 w-full border rounded"
-        />
+      
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+        <div className="relative">
+          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={(e) => onDateChange('end', e.target.value)}
+            min={dateRange.start || undefined}
+            className="pl-10 p-2 w-full border rounded"
+          />
+        </div>
       </div>
-    </div>
 
-    <div className="md:col-span-3 flex justify-end">
-      <button
-        type="submit"
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        Apply Filters
-      </button>
+      <div className="md:col-span-3">
+        <label className="inline-flex items-center">
+          <input
+            type="checkbox"
+            checked={onlyDated}
+            onChange={(e) => setOnlyDated(e.target.checked)}
+            className="form-checkbox h-4 w-4 text-blue-600"
+          />
+          <span className="ml-2 text-sm text-gray-700">Only show games with dates</span>
+        </label>
+      </div>
+
+      <div className="md:col-span-3 flex justify-end">
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Apply Filters
+        </button>
+      </div>
     </div>
   </form>
 );
@@ -95,7 +101,7 @@ const GameList = ({ games, selectedGame, onGameSelect, isLoading, error }) => {
           <div className="flex justify-between items-start">
             <div>
               <div className="font-medium text-gray-900">
-                {game.white_player?.name || 'Unknown'} vs {game.black_player?.name || 'Unknown'}
+                {game.white_player_name || 'Unknown'} vs {game.black_player_name || 'Unknown'}
               </div>
               <div className="text-sm text-gray-600">{formatDate(game.date)}</div>
             </div>
@@ -152,11 +158,11 @@ const GameDetails = ({ game }) => (
     <div className="grid grid-cols-2 gap-4 text-sm">
       <div>
         <div className="text-gray-600">White</div>
-        <div className="font-medium">{game.white_player?.name || 'Unknown'}</div>
+        <div className="font-medium">{game.white_player_name || 'Unknown'}</div>
       </div>
       <div>
         <div className="text-gray-600">Black</div>
-        <div className="font-medium">{game.black_player?.name || 'Unknown'}</div>
+        <div className="font-medium">{game.black_player_name || 'Unknown'}</div>
       </div>
       <div>
         <div className="text-gray-600">Date</div>
@@ -176,118 +182,165 @@ const GameDetails = ({ game }) => (
 
 // Component for the moves list
 const MovesList = ({ moves, moveIndex, onMoveSelect, activeItemRef, moveListRef }) => {
-  if (!moves.length) return null;
+  if (!moves.length) return <div className="text-gray-600">No moves available</div>;
 
-  const moveRows = [];
+  // Create pairs of moves for display
+  const movePairs = [];
   for (let i = 0; i < moves.length; i += 2) {
-    const whiteMove = moves[i];
-    const blackMove = moves[i + 1];
-    const isWhiteActive = i === moveIndex - 1;
-    const isBlackActive = blackMove && (i + 1) === moveIndex - 1;
-
-    moveRows.push(
-      <div 
-        key={i} 
-        className="grid grid-cols-12 gap-1 hover:bg-gray-50 text-sm"
-        ref={isWhiteActive || isBlackActive ? activeItemRef : null}
-      >
-        <div className="col-span-2 text-gray-500 pl-2">
-          {whiteMove.moveNumber}.
-        </div>
-        <div 
-          className={`col-span-5 px-2 py-1 cursor-pointer rounded transition-colors
-            ${isWhiteActive ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-          onClick={() => onMoveSelect(i + 1)}
-        >
-          {whiteMove.san}
-        </div>
-        {blackMove && (
-          <div 
-            className={`col-span-5 px-2 py-1 cursor-pointer rounded transition-colors
-              ${isBlackActive ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-            onClick={() => onMoveSelect(i + 2)}
-          >
-            {blackMove.san}
-          </div>
-        )}
-      </div>
-    );
+    movePairs.push({
+      number: Math.floor(i / 2) + 1,
+      white: moves[i],
+      black: moves[i + 1]
+    });
   }
 
   return (
-    <div className="bg-white rounded-lg border h-[320px] flex flex-col">
-      <div className="sticky top-0 z-10 bg-gray-50 border-b grid grid-cols-12 gap-1 text-sm font-medium p-2">
-        <div className="col-span-2">#</div>
-        <div className="col-span-5">White</div>
-        <div className="col-span-5">Black</div>
-      </div>
-      <div ref={moveListRef} className="flex-1 overflow-y-auto p-2 scroll-smooth">
-        {moveRows}
+    <div 
+      ref={moveListRef}
+      className="border rounded p-4 max-h-[400px] overflow-y-auto"
+    >
+      <div className="grid grid-cols-[auto_1fr_1fr] gap-2">
+        {movePairs.map(({ number, white, black }, index) => (
+          <React.Fragment key={number}>
+            <div className="text-gray-500 text-right">{number}.</div>
+            <div
+              ref={moveIndex === index * 2 ? activeItemRef : null}
+              onClick={() => onMoveSelect(index * 2)}
+              className={`cursor-pointer px-2 rounded ${
+                moveIndex === index * 2 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+              }`}
+            >
+              {white}
+            </div>
+            {black && (
+              <div
+                ref={moveIndex === index * 2 + 1 ? activeItemRef : null}
+                onClick={() => onMoveSelect(index * 2 + 1)}
+                className={`cursor-pointer px-2 rounded ${
+                  moveIndex === index * 2 + 1 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                }`}
+              >
+                {black}
+              </div>
+            )}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
 };
 
 // Main ChessGamesViewer component
-export default function ChessGamesViewer() {
-  // Base state
+const ChessGamesViewer = () => {
   const [games, setGames] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
-  const [chess, setChess] = useState(new Chess());
-  const [moveIndex, setMoveIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Search and filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-
-  // Game analysis state
-  const [currentMoves, setCurrentMoves] = useState([]);
-
-  // Refs for scroll management
+  const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [onlyDated, setOnlyDated] = useState(false);
+  const [moveIndex, setMoveIndex] = useState(0);
+  const [game, setGame] = useState(new Chess());
+  const [moves, setMoves] = useState([]);
   const moveListRef = useRef(null);
   const activeItemRef = useRef(null);
 
-  // API configuration
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  // Fetch games with filters
+  const fetchGames = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const params = new URLSearchParams({
+        ...(selectedPlayer && { player_name: selectedPlayer }),
+        ...(dateRange.start && { start_date: dateRange.start }),
+        ...(dateRange.end && { end_date: dateRange.end }),
+        ...(onlyDated && { only_dated: onlyDated }),
+        limit: '50',
+        move_notation: 'uci'
+      }).toString();
 
+      const response = await fetch(`/api/games?${params}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'An unknown error occurred' }));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setGames(data);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedPlayer, dateRange, onlyDated]);
+
+  // Fetch games when filters change
+  useEffect(() => {
+    fetchGames();
+  }, [fetchGames]);
 
   // Utility functions for game management
   const generateSANMoves = useCallback((uciMoves) => {
-    const tempChess = new Chess();
-    return uciMoves.split(' ').map(uciMove => {
-      try {
-        const move = {
-          from: uciMove.slice(0, 2),
-          to: uciMove.slice(2, 4),
-          promotion: uciMove[4]
-        };
-        const san = tempChess.move(move).san;
-        const isWhite = tempChess.turn() === 'b';
-        const fullMove = tempChess.moveNumber();
-        return {
-          uci: uciMove,
-          san,
-          color: isWhite ? 'white' : 'black',
-          moveNumber: isWhite ? fullMove : null
-        };
-      } catch (e) {
-        console.error('Invalid move:', uciMove, e);
-        return null;
+    if (!uciMoves) return [];
+    
+    try {
+      const tempGame = new Chess();
+      const movesList = uciMoves.split(' ');
+      const sanMoves = [];
+      
+      for (const uciMove of movesList) {
+        // Parse UCI move format (e.g., "e2e4" to {from: "e2", to: "e4"})
+        const from = uciMove.slice(0, 2);
+        const to = uciMove.slice(2, 4);
+        const promotion = uciMove[4];
+        
+        // Make move using chess.js move function with explicit from/to
+        const move = tempGame.move({
+          from: from,
+          to: to,
+          promotion: promotion
+        });
+        
+        if (move) {
+          sanMoves.push(move.san);
+        } else {
+          console.error('Invalid move:', uciMove);
+          return [];  // Return empty array on invalid move
+        }
       }
-    }).filter(Boolean);
+      
+      return sanMoves;
+    } catch (err) {
+      console.error('Error generating SAN moves:', err);
+      return [];
+    }
+  }, []);
+
+  // Handle game selection
+  const handleGameSelect = useCallback((selectedGame) => {
+    try {
+      setSelectedGame(selectedGame);
+      setMoveIndex(0);
+      
+      // Create new game instance
+      const newGame = new Chess();
+      setGame(newGame);
+      
+      // Split moves and set them
+      const moves = selectedGame.moves.split(' ');
+      setMoves(moves);
+      
+      // Reset the board position
+      newGame.reset();
+    } catch (err) {
+      console.error('Error selecting game:', err);
+      setError('Failed to load game moves. Please try another game.');
+    }
   }, []);
 
   // Event handlers
-  const handleGameSelect = useCallback((game) => {
-    setSelectedGame(game);
-    setMoveIndex(0);
-    setChess(new Chess());
-    setCurrentMoves(generateSANMoves(game.moves));
-  }, [generateSANMoves]);
-
   const handleDateChange = useCallback((type, value) => {
     const date = new Date(value);
     if (isNaN(date.getTime())) {
@@ -320,95 +373,65 @@ export default function ChessGamesViewer() {
         setMoveIndex(prev => Math.max(0, prev - 1));
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setMoveIndex(prev => Math.min(currentMoves.length, prev + 1));
+        setMoveIndex(prev => Math.min(moves.length, prev + 1));
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectedGame, currentMoves.length]);
-
-  // Games fetching logic
-  const fetchGames = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      
-      if (searchQuery) params.append('player_name', searchQuery);
-      if (dateRange.start) params.append('start_date', dateRange.start);
-      if (dateRange.end) params.append('end_date', dateRange.end);
-
-      const response = await fetch(`${API_URL}/games?${params}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch games');
-      }
-      
-      const data = await response.json();
-      setGames(data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching games:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [API_URL, searchQuery, dateRange]);
-
-  // Effect to fetch games when filters change
-  useEffect(() => {
-    fetchGames();
-  }, [fetchGames]);
-
-
-  // Game position management
-  const updatePosition = useCallback(() => {
-    if (!selectedGame) return;
-    
-    const moves = selectedGame.moves.split(' ');
-    const newChess = new Chess();
-    
-    for (let i = 0; i < moveIndex && i < moves.length; i++) {
-      try {
-        newChess.move({
-          from: moves[i].slice(0, 2),
-          to: moves[i].slice(2, 4),
-          promotion: moves[i][4]
-        });
-      } catch (e) {
-        console.error('Invalid move:', moves[i], e);
-      }
-    }
-    
-    setChess(newChess);
-  }, [selectedGame, moveIndex]);
-
-  // Effect to update board position
-  useEffect(() => {
-    updatePosition();
-  }, [updatePosition]);
-
+  }, [selectedGame, moves.length]);
 
   const handleSearch = useCallback((e) => {
     e.preventDefault();
-    setSearchQuery(searchTerm);
-  }, [searchTerm]);
+    fetchGames();
+  }, [fetchGames]);
+
+  const handlePlayerSelect = useCallback((player) => {
+    setSelectedPlayer(player);
+  }, []);
 
   const handleMoveSelect = useCallback((index) => {
     setMoveIndex(index);
   }, []);
 
+  const handleOnlyDatedChange = useCallback((checked) => {
+    setOnlyDated(checked);
+  }, []);
+
+  // Effect for move playback
+  useEffect(() => {
+    if (!selectedGame || !moves.length) return;
+    
+    try {
+      // Reset the game and replay moves up to current index
+      const newGame = new Chess();
+      
+      // Get moves up to current index and replay them
+      const currentMoves = moves.slice(0, moveIndex);
+      
+      // Apply each move
+      for (const move of currentMoves) {
+        newGame.move(move);
+      }
+      
+      setGame(newGame);
+    } catch (err) {
+      console.error('Error updating game position:', err);
+    }
+  }, [selectedGame, moveIndex, moves]);
+
   return (
-    <div className="p-6">
+    <div className="container mx-auto p-6">
       <div className="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold mb-6">Chess Games Explorer</h1>
         
         <GameFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+          onPlayerSelect={handlePlayerSelect}
           dateRange={dateRange}
           onDateChange={handleDateChange}
           onSearch={handleSearch}
+          onlyDated={onlyDated}
+          setOnlyDated={handleOnlyDatedChange}
         />
         
         <div className="flex flex-col lg:flex-row gap-8">
@@ -431,13 +454,13 @@ export default function ChessGamesViewer() {
               <div className="flex flex-col xl:flex-row gap-6">
                 <div className="xl:w-[480px]">
                   <Chessboard 
-                    position={chess.fen()} 
+                    position={game.fen()} 
                     boardWidth={480}
                     arePiecesDraggable={false}
                   />
                   <GameControls
                     moveIndex={moveIndex}
-                    totalMoves={currentMoves.length}
+                    totalMoves={moves.length}
                     onMoveChange={setMoveIndex}
                     disabled={!selectedGame}
                   />
@@ -448,9 +471,9 @@ export default function ChessGamesViewer() {
                   <div className="sticky top-0">
                     <h3 className="font-medium mb-2">Moves</h3>
                     <MovesList
-                      moves={currentMoves}
+                      moves={moves}
                       moveIndex={moveIndex}
-                      onMoveSelect={setMoveIndex}
+                      onMoveSelect={handleMoveSelect}
                       activeItemRef={activeItemRef}
                       moveListRef={moveListRef}
                     />
@@ -467,4 +490,6 @@ export default function ChessGamesViewer() {
       </div>
     </div>
   );
-}
+};
+
+export default ChessGamesViewer;

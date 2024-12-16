@@ -1,29 +1,86 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import text
-import os
-from dotenv import load_dotenv
+"""
+Database configuration and session management for the chess database.
+"""
 
-load_dotenv()
-engine = create_async_engine(os.getenv("DATABASE_URL"), echo=True)
-SessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-Base = declarative_base()
-async def init_db():
-    """Initialize database tables if they don't exist"""
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text, select, func
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.pool import NullPool
+from config import DATABASE_URL
+import os
+import logging
+from repository.models.base import Base
+from repository.models.player import PlayerDB
+from repository.models.game import GameDB
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+logger.info(f"Creating database engine with URL: {DATABASE_URL}")
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,  # Enable SQL logging
+    poolclass=NullPool  # Disable connection pooling in development
+)
+
+async_session = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
+)
+
+async def create_tables():
+    """Create database tables if they don't exist"""
     async with engine.begin() as conn:
-        # Get list of existing tables using SQLAlchemy's text construct
-        result = await conn.execute(
-            text("""
-                SELECT tablename 
-                FROM pg_tables 
-                WHERE schemaname = 'public'
-            """)
-        )
-        existing_tables = {row[0] for row in result}
-        
-        # Only create tables that don't exist
-        if not existing_tables:
-            await conn.run_sync(Base.metadata.create_all)
-            print("Created database tables.")
-        else:
-            print("Database tables already exist, skipping creation.")
+        await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created")
+
+async def dispose_tables():
+    """Clean up database connections"""
+    await engine.dispose()
+    logger.info("Database connections disposed")
+
+async def init_models():
+    """Initialize any required model data"""
+    async with async_session() as session:
+        try:
+            # Check if we need to initialize data
+            query = select(func.count()).select_from(PlayerDB)
+            result = await session.execute(query)
+            count = result.scalar()
+            
+            if count == 0:
+                logger.info("Database is empty")
+                pass
+            else:
+                logger.info("Database already contains data, skipping initialization")
+                
+        except Exception as e:
+            logger.error(f"Error initializing models: {str(e)}", exc_info=True)
+            await session.rollback()
+            raise
+    logger.info("Models initialized")
+
+async def get_session() -> AsyncSession:
+    """Get a database session."""
+    try:
+        async with async_session() as session:
+            # Enable relationship loading
+            session.expire_on_commit = False
+            yield session
+    except Exception as e:
+        logger.error(f"Error in database session: {e}")
+        raise
+
+async def check_connection() -> bool:
+    """Check database connectivity"""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+            return True
+    except Exception as e:
+        logger.error(f"Database connection error: {e}")
+        return False

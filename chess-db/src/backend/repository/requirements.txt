@@ -1,0 +1,17 @@
+# Core dependencies
+sqlalchemy>=2.0.0
+fastapi>=0.100.0
+pydantic>=2.0.0
+python-dateutil>=2.8.2
+
+# Database
+asyncpg>=0.28.0  # PostgreSQL async driver
+
+# Validation and parsing
+python-chess>=1.9.0  # Chess move validation and parsing
+email-validator>=2.0.0  # For email validation in models
+
+# Utilities
+python-dotenv>=1.0.0  # Environment variable management
+tenacity>=8.2.0  # Retry logic for database operations
+structlog>=23.1.0  # Structured logging

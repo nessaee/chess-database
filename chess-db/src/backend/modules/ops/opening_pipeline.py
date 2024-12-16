@@ -9,7 +9,7 @@ import io
 import asyncpg
 import uuid, json
 from datetime import datetime
-from encode import ChessGameEncoder
+from backend.utils.encode import ChessGameEncoder
 import aiofiles
 
 @dataclass
