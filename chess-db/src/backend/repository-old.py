@@ -17,7 +17,7 @@ from sqlalchemy.engine import Result
 from typing import List, Dict, Union, TypedDict, Optional, Any, Tuple
 import logging
 from datetime import datetime
-from modules.ops.encode import ChessMoveEncoder
+from backend.utils.encode import ChessMoveEncoder
 
 from datetime import datetime
 from typing import Optional, Tuple
@@ -399,7 +399,7 @@ from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-from modules.ops.encode import ChessMoveEncoder
+from backend.utils.encode import ChessMoveEncoder
 
 class MoveCountStats(TypedDict):
     """Type definition for move count statistics"""
