@@ -178,6 +178,40 @@ async def get_player_performance(
         logger.error(f"Error getting player performance: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@router.get("/player/{player_id}/performance")
+async def get_player_performance(
+    player_id: int,
+    time_range: str = Query("monthly", description="Time range for analysis (daily, weekly, monthly, yearly)"),
+    db: AsyncSession = Depends(get_session)
+):
+    """Get performance statistics for a player over time."""
+    try:
+        repo = AnalysisRepository(db)
+        stats = await repo.get_player_performance(player_id, time_range)
+        if not stats:
+            raise HTTPException(status_code=404, detail="No performance data found")
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting player performance: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get player performance")
+
+@router.get("/player/{player_id}/openings")
+async def get_player_openings(
+    player_id: int,
+    min_games: int = Query(5, description="Minimum number of games for opening analysis"),
+    db: AsyncSession = Depends(get_session)
+):
+    """Get opening statistics for a player."""
+    try:
+        repo = AnalysisRepository(db)
+        stats = await repo.get_player_openings(player_id, min_games)
+        if not stats:
+            raise HTTPException(status_code=404, detail="No opening data found")
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting player openings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get player openings")
+
 @router.get("/players/search", response_model=List[PlayerSearchResponse], include_in_schema=True)
 async def search_players(
     query: str = Query(

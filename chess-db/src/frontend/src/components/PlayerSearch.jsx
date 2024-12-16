@@ -35,7 +35,7 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
+          `${import.meta.env.VITE_API_URL}/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
         );
         
         if (!response.ok) {
@@ -44,12 +44,11 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
         }
         
         const data = await response.json();
-        setSuggestions(data.map(player => player.name));
+        setSuggestions(data);  
         setOpen(true);
       } catch (error) {
         console.error('Error fetching player suggestions:', error);
         setError(error.message || 'Failed to fetch suggestions');
-        setSuggestions([]);
       } finally {
         setLoading(false);
       }
@@ -62,8 +61,8 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
     };
   }, [fetchSuggestions]);
 
-  const handleInputChange = (event) => {
-    const value = event.target.value;
+  const handleInputChange = (e) => {
+    const value = e.target.value;
     setInputValue(value);
     if (value) {
       fetchSuggestions(value);
@@ -74,9 +73,9 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
     }
   };
 
-  const handleSelect = (value) => {
-    setInputValue(value);
-    onPlayerSelect(value);
+  const handleSelect = (player) => {
+    setInputValue(player.name);
+    onPlayerSelect(player);  
     setOpen(false);
   };
 
@@ -98,31 +97,46 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
           </div>
         )}
       </div>
-
+      
       {open && suggestions.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((suggestion, index) => (
+          {suggestions.map((player, index) => (
             <li
-              key={index}
-              onClick={() => handleSelect(suggestion)}
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+              key={player.id}
+              onClick={() => handleSelect(player)}
+              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                index < suggestions.length - 1 ? 'border-b' : ''
+              }`}
             >
-              {suggestion}
+              <div className="font-medium">{player.name}</div>
+              {player.rating && (
+                <div className="text-sm text-gray-500">Rating: {player.rating}</div>
+              )}
             </li>
           ))}
         </ul>
       )}
-
+      
       {open && suggestions.length === 0 && !loading && inputValue.length >= 2 && (
         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-gray-500">
           {error ? error : 'No players found'}
         </div>
       )}
-
+      
       {inputValue.length < 2 && (
         <p className="mt-1 text-sm text-gray-500">
           Enter at least 2 characters
         </p>
+      )}
+      
+      {loading && (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="text-red-500 text-sm mt-1">{error}</div>
       )}
     </div>
   );

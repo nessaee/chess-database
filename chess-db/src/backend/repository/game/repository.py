@@ -26,6 +26,7 @@ class GameRepository:
     async def get_games(
             self,
             player_name: Optional[str] = None,
+            player_id: Optional[int] = None,
             start_date: Optional[str] = None,
             end_date: Optional[str] = None,
             only_dated: bool = False,
@@ -78,6 +79,13 @@ class GameRepository:
                 )
                 query = query.where(player_filter)
 
+            # Add player ID filter if provided
+            if player_id:
+                player_filter = or_(
+                    GameDB.white_player_id == player_id,
+                    GameDB.black_player_id == player_id
+                )
+                query = query.where(player_filter)
             # Add ordering and limit
             query = query.order_by(GameDB.date.desc()).limit(limit)
 

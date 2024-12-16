@@ -349,15 +349,148 @@ class AnalysisRepository:
 
     async def _get_opening_name(self, eco_code: str) -> str:
         """Get opening name from ECO code."""
-        cache_key = f"opening_name_{eco_code}"
-        cached = self.cache.get(cache_key)
-        if cached:
-            return cached
+        # For now, just return the ECO code since we don't have the openings table
+        return eco_code
 
-        query = "SELECT name FROM openings WHERE eco = :eco"
-        result = await self.db.execute(text(query), {"eco": eco_code})
-        row = result.first()
-        
-        name = row[0] if row else eco_code
-        self.cache.set(cache_key, name)
-        return name
+    async def get_player_performance(
+        self,
+        player_id: int,
+        time_range: str = "monthly"
+    ) -> Dict[str, Any]:
+        """Get performance statistics for a player over time."""
+        try:
+            # Calculate date range based on time range
+            date_trunc = {
+                "daily": "day",
+                "weekly": "week",
+                "monthly": "month",
+                "yearly": "year"
+            }.get(time_range, "month")
+
+            query = f"""
+                WITH time_periods AS (
+                    SELECT
+                        date_trunc('{date_trunc}', date) as period,
+                        COUNT(*) as games_played,
+                        COUNT(CASE WHEN 
+                            (white_player_id = :player_id AND result = '1-0') OR
+                            (black_player_id = :player_id AND result = '0-1')
+                        THEN 1 END) as wins,
+                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END) as draws,
+                        AVG(CASE 
+                            WHEN white_player_id = :player_id THEN white_elo
+                            WHEN black_player_id = :player_id THEN black_elo
+                        END) as avg_rating
+                    FROM games
+                    WHERE (white_player_id = :player_id OR black_player_id = :player_id)
+                    AND date IS NOT NULL
+                    GROUP BY period
+                    ORDER BY period DESC
+                    LIMIT 12
+                )
+                SELECT
+                    period,
+                    games_played,
+                    wins,
+                    draws,
+                    games_played - wins - draws as losses,
+                    CAST((wins::float * 100 / NULLIF(games_played, 0)) AS NUMERIC(5,2)) as win_rate,
+                    CAST((draws::float * 100 / NULLIF(games_played, 0)) AS NUMERIC(5,2)) as draw_rate,
+                    CAST(avg_rating AS INTEGER) as avg_rating
+                FROM time_periods
+                ORDER BY period
+            """
+
+            result = await self.db.execute(text(query), {"player_id": player_id})
+            rows = result.fetchall()
+
+            if not rows:
+                return None
+
+            return {
+                "periods": [row.period.strftime("%Y-%m-%d") for row in rows],
+                "games_played": [row.games_played for row in rows],
+                "wins": [row.wins for row in rows],
+                "draws": [row.draws for row in rows],
+                "losses": [row.losses for row in rows],
+                "win_rates": [float(row.win_rate) if row.win_rate else 0.0 for row in rows],
+                "draw_rates": [float(row.draw_rate) if row.draw_rate else 0.0 for row in rows],
+                "ratings": [row.avg_rating if row.avg_rating else None for row in rows]
+            }
+
+        except Exception as e:
+            logger.error(f"Error in get_player_performance: {str(e)}")
+            raise
+
+    async def get_player_openings(
+        self,
+        player_id: int,
+        min_games: int = 5
+    ) -> Dict[str, Any]:
+        """Get opening statistics for a player."""
+        try:
+            query = """
+                WITH player_openings AS (
+                    SELECT
+                        eco,
+                        COUNT(*) as games_played,
+                        COUNT(CASE WHEN 
+                            (white_player_id = :player_id AND result = '1-0') OR
+                            (black_player_id = :player_id AND result = '0-1')
+                        THEN 1 END) as wins,
+                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END) as draws,
+                        COUNT(CASE WHEN white_player_id = :player_id THEN 1 END) as white_games,
+                        COUNT(CASE WHEN black_player_id = :player_id THEN 1 END) as black_games
+                    FROM games
+                    WHERE (white_player_id = :player_id OR black_player_id = :player_id)
+                    AND eco IS NOT NULL
+                    GROUP BY eco
+                    HAVING COUNT(*) >= :min_games
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 10
+                )
+                SELECT
+                    o.*,
+                    o.games_played - o.wins - o.draws as losses,
+                    CAST((o.wins::float * 100 / NULLIF(o.games_played, 0)) AS NUMERIC(5,2)) as win_rate,
+                    CAST((o.draws::float * 100 / NULLIF(o.games_played, 0)) AS NUMERIC(5,2)) as draw_rate
+                FROM player_openings o
+                ORDER BY o.games_played DESC, win_rate DESC
+            """
+
+            result = await self.db.execute(
+                text(query),
+                {"player_id": player_id, "min_games": min_games}
+            )
+            rows = result.fetchall()
+
+            if not rows:
+                return None
+
+            openings = []
+            for row in rows:
+                opening_name = await self._get_opening_name(row.eco)
+                openings.append({
+                    "eco": row.eco,
+                    "name": opening_name,
+                    "games_played": row.games_played,
+                    "wins": row.wins,
+                    "draws": row.draws,
+                    "losses": row.losses,
+                    "win_rate": float(row.win_rate) if row.win_rate else 0.0,
+                    "draw_rate": float(row.draw_rate) if row.draw_rate else 0.0,
+                    "white_games": row.white_games,
+                    "black_games": row.black_games
+                })
+
+            return {
+                "openings": openings,
+                "total_games": sum(o["games_played"] for o in openings),
+                "total_wins": sum(o["wins"] for o in openings),
+                "total_draws": sum(o["draws"] for o in openings),
+                "total_losses": sum(o["losses"] for o in openings)
+            }
+
+        except Exception as e:
+            logger.error(f"Error in get_player_openings: {str(e)}")
+            raise

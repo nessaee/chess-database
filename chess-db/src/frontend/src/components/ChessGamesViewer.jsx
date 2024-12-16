@@ -251,7 +251,7 @@ const ChessGamesViewer = () => {
       setIsLoading(true);
       setError(null);
       const params = new URLSearchParams({
-        ...(selectedPlayer?.name && { player_name: selectedPlayer.name }),
+        ...(selectedPlayer?.id && { player_id: selectedPlayer.id }),
         ...(dateRange.start && { start_date: dateRange.start }),
         ...(dateRange.end && { end_date: dateRange.end }),
         only_dated: onlyDated.toString(),

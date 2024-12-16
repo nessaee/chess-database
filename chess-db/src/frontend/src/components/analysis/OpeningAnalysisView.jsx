@@ -138,29 +138,31 @@ const OpeningAnalysisView = ({ data }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <OpeningSummaryCard
           title="Total Openings"
-          value={data.total_openings}
+          value={data.total_openings ?? 0}
           icon={BookOpen}
         />
         <OpeningSummaryCard
           title="Most Successful"
-          value={data.most_successful}
-          subtitle={`${data.analysis.find(o => o.eco_code === data.most_successful)?.win_rate.toFixed(1)}% Win Rate`}
+          value={data.most_successful ?? 'N/A'}
+          subtitle={data.analysis?.find(o => o.eco_code === data.most_successful)?.win_rate 
+            ? `${data.analysis.find(o => o.eco_code === data.most_successful).win_rate.toFixed(1)}% Win Rate`
+            : 'No data'}
           icon={Swords}
         />
         <OpeningSummaryCard
           title="Average Game Length"
-          value={`${data.avg_game_length.toFixed(1)} moves`}
+          value={data.avg_game_length ? `${data.avg_game_length.toFixed(1)} moves` : 'N/A'}
           icon={Calendar}
         />
       </div>
 
       {/* Win Rate Chart */}
-      <OpeningWinRateChart openings={data.analysis} />
+      <OpeningWinRateChart openings={data.analysis ?? []} />
 
       {/* Detailed Performance Table */}
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Opening Performance Details</h3>
-        <OpeningPerformanceTable openings={data.analysis} />
+        <OpeningPerformanceTable openings={data.analysis ?? []} />
       </div>
     </div>
   );

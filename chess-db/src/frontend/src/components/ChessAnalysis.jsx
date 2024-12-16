@@ -142,6 +142,38 @@ export default function ChessAnalysis() {
     }));
   };
 
+  const handlePlayerSearch = async (query) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // First get the player ID from search
+      const searchResults = await analysisService.searchPlayers(query);
+      if (!searchResults || searchResults.length === 0) {
+        setError('Player not found');
+        return;
+      }
+      
+      // Use the first matching player's ID
+      const selectedPlayerId = searchResults[0].id;
+      setPlayerId(selectedPlayerId);
+      
+    } catch (error) {
+      console.error('Error searching player:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const searchInput = e.target.elements.playerSearch;
+    if (searchInput && searchInput.value) {
+      handlePlayerSearch(searchInput.value);
+    }
+  };
+
   // Loading state handler
   if (isLoading) {
     return (
@@ -260,6 +292,14 @@ export default function ChessAnalysis() {
               onDateRangeChange={handleDateChange}
               onPlayerSelect={setPlayerId}
             />
+            <form onSubmit={handleSearchSubmit} className="mb-4">
+              <input
+                type="text"
+                name="playerSearch"
+                placeholder="Search player (e.g., Nakamura,Hi)"
+                className="w-full p-2 border rounded"
+              />
+            </form>
           </div>
         )}
       </div>

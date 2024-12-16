@@ -36,6 +36,7 @@ async def count_games(
 async def read_games(
     response: Response,
     player_name: Optional[str] = None,
+    player_id: Optional[int] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     only_dated: bool = False,
@@ -78,6 +79,7 @@ async def read_games(
         game_repository = GameRepository(db)
         games = await game_repository.get_games(
             player_name=player_name,
+            player_id=player_id,
             start_date=start_date,
             end_date=end_date,
             only_dated=only_dated,
