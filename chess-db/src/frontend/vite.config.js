@@ -21,11 +21,11 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/games': {
+      '/api': {
         target: 'http://web:8000',
         changeOrigin: true,
         secure: false,
-        ws: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.log('proxy error', err);
@@ -37,18 +37,6 @@ export default defineConfig({
             console.log('Received Response:', proxyRes.statusCode, req.url);
           });
         }
-      },
-      '/players': {
-        target: 'http://web:8000',
-        changeOrigin: true,
-        secure: false,
-        ws: true
-      },
-      '/analysis': {
-        target: 'http://web:8000',
-        changeOrigin: true,
-        secure: false,
-        ws: true
       }
     }
   },

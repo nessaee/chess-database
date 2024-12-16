@@ -251,15 +251,15 @@ const ChessGamesViewer = () => {
       setIsLoading(true);
       setError(null);
       const params = new URLSearchParams({
-        ...(selectedPlayer?.id && { player_id: selectedPlayer.id }),
+        ...(selectedPlayer && { player_name: selectedPlayer }),
         ...(dateRange.start && { start_date: dateRange.start }),
         ...(dateRange.end && { end_date: dateRange.end }),
-        only_dated: onlyDated.toString(),
+        ...(onlyDated && { only_dated: onlyDated }),
         limit: '50',
-        move_notation: 'san'  // Always request SAN notation
-      });
+        move_notation: 'uci'
+      }).toString();
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/games?${params}`);
+      const response = await fetch(`/api/games?${params}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'An unknown error occurred' }));

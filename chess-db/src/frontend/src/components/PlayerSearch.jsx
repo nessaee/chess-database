@@ -35,7 +35,7 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
+          `/api/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
         );
         
         if (!response.ok) {
@@ -75,7 +75,7 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
 
   const handleSelect = (player) => {
     setInputValue(player.name);
-    onPlayerSelect(player);  
+    onPlayerSelect(player.name);  
     setOpen(false);
   };
 
