@@ -40,44 +40,23 @@ async def get_move_count_distribution(
         logger.error(f"Error getting move count distribution: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/database/metrics", response_model=DatabaseMetricsResponse)
+@router.get("/database-metrics", response_model=DatabaseMetricsResponse)
 async def get_database_metrics(
     response: Response,
-    time_period: str = Query("1m", description="Time period (1m, 3m, 6m, 1y)"),
     db: AsyncSession = Depends(get_session)
 ):
+
     """Get comprehensive database metrics and trends."""
     try:
         repo = AnalysisRepository(db)
-        end_date = datetime.now()
-        period_map = {
-            "1m": timedelta(days=30),
-            "3m": timedelta(days=90),
-            "6m": timedelta(days=180),
-            "1y": timedelta(days=365)
-        }
-        
-        if time_period not in period_map:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid time period. Must be one of: {', '.join(period_map.keys())}"
-            )
-            
-        start_date = end_date - period_map[time_period]
-        
-        stats = await repo.get_database_metrics(
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d")
-        )
+        stats = await repo.get_database_metrics()
         
         if not stats:
             raise HTTPException(status_code=404, detail="No database metrics available")
             
-        response.headers[CACHE_CONTROL_HEADER] = "max-age=1800"  # Cache for 30 minutes
+        response.headers["Cache-Control"] = "public, max-age=1800"  # Cache for 30 minutes
         return stats
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error getting database metrics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

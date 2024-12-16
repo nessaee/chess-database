@@ -38,27 +38,26 @@ class PlayerRepository:
             List of PlayerSearchResponse objects with name and rating
         """
         try:
-            search_query = select(PlayerDB).filter(
-                PlayerDB.name.ilike(f"%{query}%")
-            ).limit(limit)
+            search_query = (
+                select(PlayerDB.id, PlayerDB.name)
+                .where(PlayerDB.name.ilike(f'%{query}%'))
+                .order_by(PlayerDB.name)
+                .limit(limit)
+            )
 
             result = await self.db.execute(search_query)
-            players = result.scalars().all()
-
-            # Get ELO ratings for players
-            player_ratings = await self._get_player_ratings([p.id for p in players])
-
+            players = result.all()
+            
             return [
                 PlayerSearchResponse(
                     id=player.id,
                     name=player.name,
-                    elo=player_ratings.get(player.id)
                 )
                 for player in players
             ]
 
         except Exception as e:
-            logger.error(f"Error searching players: {str(e)}")
+            logger.error(f"Error in search_players: {str(e)}")
             raise
 
     async def get_player_performance(

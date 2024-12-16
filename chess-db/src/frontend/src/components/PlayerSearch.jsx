@@ -35,7 +35,7 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
       try {
         setLoading(true);
         const response = await fetch(
-          `/games/players/suggest?name=${encodeURIComponent(searchTerm)}&limit=10`
+          `/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
         );
         
         if (!response.ok) {
@@ -44,7 +44,7 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
         }
         
         const data = await response.json();
-        setSuggestions(data);
+        setSuggestions(data.map(player => player.name));
         setOpen(true);
       } catch (error) {
         console.error('Error fetching player suggestions:', error);

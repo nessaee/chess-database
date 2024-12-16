@@ -148,9 +148,50 @@ class DatabaseMetricsResponse(BaseModel):
     """Overall database metrics and statistics"""
     total_games: int = Field(..., description="Total number of games in database")
     total_players: int = Field(..., description="Total number of unique players")
-    date_range: Dict[str, datetime] = Field(..., description="Earliest and latest game dates")
-    storage_metrics: Dict[str, float] = Field(..., description="Database storage statistics in bytes")
-    game_stats: Dict[str, float] = Field(..., description="Game statistics including averages and counts")
-    rating_distribution: Dict[str, int] = Field(..., description="Distribution of player ratings")
-    last_update: datetime = Field(..., description="Last database update timestamp")
-    model_config = ConfigDict(from_attributes=True)
+    avg_moves_per_game: float = Field(..., description="Average number of moves per game")
+    avg_game_duration: float = Field(..., description="Average game duration in seconds")
+    
+    # Performance metrics
+    performance: Dict[str, float] = Field(
+        ...,
+        description="Game performance metrics including win rates and draw rates"
+    )
+    
+    # Growth trends
+    growth_trends: Dict[str, float] = Field(
+        ...,
+        description="Database growth metrics including monthly averages and peaks"
+    )
+    
+    # Health metrics
+    health_metrics: Dict[str, float] = Field(
+        ...,
+        description="Database health metrics including data quality indicators"
+    )
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_games": 100000,
+                "total_players": 5000,
+                "avg_moves_per_game": 40.5,
+                "avg_game_duration": 1800.0,
+                "performance": {
+                    "white_win_rate": 0.52,
+                    "draw_rate": 0.15,
+                    "avg_game_length": 42.3
+                },
+                "growth_trends": {
+                    "avg_monthly_games": 1200.5,
+                    "avg_monthly_players": 450.2,
+                    "peak_monthly_games": 2500,
+                    "peak_monthly_players": 800
+                },
+                "health_metrics": {
+                    "null_moves_rate": 0.02,
+                    "missing_player_rate": 0.01,
+                    "missing_result_rate": 0.03
+                }
+            }
+        }
+    )

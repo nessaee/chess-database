@@ -3,9 +3,12 @@ Router for player-related endpoints.
 Handles player search, statistics, and performance analysis.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+
+logger = logging.getLogger(__name__)
 
 from database import get_session
 from repository import PlayerRepository
@@ -20,18 +23,23 @@ router = APIRouter(
     prefix="/players",
     tags=["players"]
 )
-@router.get("", response_model=List[PlayerSearchResponse])
+
+@router.get("/search", response_model=List[PlayerSearchResponse])
 async def search_players(
-    name: Optional[str] = None,
-    limit: int = 10,
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=10, gt=0, le=100),
     db: AsyncSession = Depends(get_session)
 ):
     """
     Search for players by name.
     Returns a list of matching players with basic info.
     """
-    repo = PlayerRepository(db)
-    return await repo.search_players(name, limit) if name else await repo.get_players(limit)
+    try:
+        repo = PlayerRepository(db)
+        return await repo.search_players(q, limit)
+    except Exception as e:
+        logger.error(f"Error searching players: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to search players")
 
 @router.get("/{player_id}", response_model=PlayerResponse)
 async def get_player(

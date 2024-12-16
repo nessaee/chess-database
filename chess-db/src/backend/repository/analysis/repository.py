@@ -234,63 +234,118 @@ class AnalysisRepository:
             logger.error(f"Error analyzing player openings: {str(e)}")
             raise
 
-    async def get_database_metrics(
-        self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
-    ) -> DatabaseMetricsResponse:
-        """Get database metrics with optional date filtering."""
+    async def get_database_metrics(self) -> DatabaseMetricsResponse:
+        """Get database metrics."""
         try:
-            # Parse dates
-            start = self.date_handler.validate_and_parse_date(start_date, "start_date")
-            end = self.date_handler.validate_and_parse_date(end_date, "end_date")
+            # Get basic stats
+            basic_stats = await self._get_basic_stats()
             
-            query = """
-                SELECT 
-                    COUNT(*) as games,
-                    COUNT(DISTINCT white_player_id) + 
-                    COUNT(DISTINCT black_player_id) as players,
-                    SUM(length(moves::text)) as storage,
-                    COUNT(CASE WHEN date IS NOT NULL THEN 1 END) as dated_games,
-                    MIN(date) as earliest_game,
-                    MAX(date) as latest_game,
-                    COUNT(CASE WHEN result = '1-0' THEN 1 END) as white_wins,
-                    COUNT(CASE WHEN result = '0-1' THEN 1 END) as black_wins,
-                    COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END) as draws,
-                    COUNT(CASE WHEN result = '*' THEN 1 END) as undecided,
-                    AVG(CASE 
-                        WHEN moves IS NOT NULL AND length(moves::text) > 0 
-                        THEN array_length(string_to_array(moves::text, ' '), 1)
-                        ELSE 0 
-                    END) as avg_moves
-                FROM games
-                WHERE (:start_date::date IS NULL OR date >= :start_date::date)
-                AND (:end_date::date IS NULL OR date <= :end_date::date)
-            """
+            # Get performance metrics
+            performance_metrics = await self._get_performance_metrics()
             
-            result = await self.db.execute(
-                text(query),
-                {"start_date": start, "end_date": end}
-            )
-            row = result.fetchone()
+            # Get growth trends
+            growth_trends = await self._get_growth_trends()
+            
+            # Get health metrics
+            health_metrics = await self._get_health_metrics()
             
             return DatabaseMetricsResponse(
-                total_games=row.games,
-                total_players=row.players,
-                storage_size_bytes=row.storage,
-                dated_games=row.dated_games,
-                earliest_game=row.earliest_game,
-                latest_game=row.latest_game,
-                white_wins=row.white_wins,
-                black_wins=row.black_wins,
-                draws=row.draws,
-                undecided=row.undecided,
-                average_moves=float(row.avg_moves) if row.avg_moves else 0.0
+                total_games=basic_stats.get("total_games", 0),
+                total_players=basic_stats.get("total_players", 0),
+                avg_moves_per_game=basic_stats.get("avg_moves_per_game", 0.0),
+                avg_game_duration=basic_stats.get("avg_game_duration", 0.0),
+                performance=performance_metrics,
+                growth_trends=growth_trends,
+                health_metrics=health_metrics
             )
 
         except Exception as e:
             logger.error(f"Error getting database metrics: {str(e)}")
             raise
+
+    async def _get_basic_stats(self) -> Dict[str, Any]:
+        """Get basic database statistics."""
+        query = """
+            SELECT
+                COUNT(*) as total_games,
+                COUNT(DISTINCT COALESCE(white_player_id, black_player_id)) as total_players,
+                AVG(array_length(string_to_array(moves::text, ' '), 1)) as avg_moves_per_game,
+                0 as avg_game_duration
+            FROM games
+        """
+        result = await self.db.execute(text(query))
+        row = result.fetchone()
+        return {
+            "total_games": row.total_games if row else 0,
+            "total_players": row.total_players if row else 0,
+            "avg_moves_per_game": float(row.avg_moves_per_game) if row and row.avg_moves_per_game else 0.0,
+            "avg_game_duration": 0.0
+        }
+
+    async def _get_performance_metrics(self) -> Dict[str, Any]:
+        """Get database performance metrics."""
+        query = """
+            SELECT
+                AVG(CASE WHEN result = '1-0' THEN 1 WHEN result = '0-1' THEN 0 ELSE 0.5 END) as white_win_rate,
+                COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
+                AVG(array_length(string_to_array(moves::text, ' '), 1)) as avg_game_length
+            FROM games
+            WHERE result IS NOT NULL
+        """
+        result = await self.db.execute(text(query))
+        row = result.fetchone()
+        return {
+            "white_win_rate": float(row.white_win_rate) if row and row.white_win_rate else 0.0,
+            "draw_rate": float(row.draw_rate) if row and row.draw_rate else 0.0,
+            "avg_game_length": float(row.avg_game_length) if row and row.avg_game_length else 0.0
+        }
+
+    async def _get_growth_trends(self) -> Dict[str, Any]:
+        """Get database growth trends."""
+        query = """
+            WITH monthly_stats AS (
+                SELECT
+                    DATE_TRUNC('month', date) as month,
+                    COUNT(*) as games_added,
+                    COUNT(DISTINCT COALESCE(white_player_id, black_player_id)) as active_players
+                FROM games
+                WHERE date IS NOT NULL
+                GROUP BY DATE_TRUNC('month', date)
+                ORDER BY month DESC
+                LIMIT 12
+            )
+            SELECT
+                COALESCE(AVG(games_added), 0) as avg_monthly_games,
+                COALESCE(AVG(active_players), 0) as avg_monthly_players,
+                COALESCE(MAX(games_added), 0) as peak_monthly_games,
+                COALESCE(MAX(active_players), 0) as peak_monthly_players
+            FROM monthly_stats
+        """
+        result = await self.db.execute(text(query))
+        row = result.fetchone()
+        return {
+            "avg_monthly_games": float(row.avg_monthly_games) if row else 0.0,
+            "avg_monthly_players": float(row.avg_monthly_players) if row else 0.0,
+            "peak_monthly_games": int(row.peak_monthly_games) if row else 0,
+            "peak_monthly_players": int(row.peak_monthly_players) if row else 0
+        }
+
+    async def _get_health_metrics(self) -> Dict[str, Any]:
+        """Get database health metrics."""
+        query = """
+            SELECT
+                COALESCE(COUNT(CASE WHEN moves IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0), 0) as null_moves_rate,
+                COALESCE(COUNT(CASE WHEN white_player_id IS NULL OR black_player_id IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0), 0) as missing_player_rate,
+                COALESCE(COUNT(CASE WHEN result IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0), 0) as missing_result_rate
+            FROM games
+        """
+        result = await self.db.execute(text(query))
+        row = result.fetchone()
+        return {
+            "null_moves_rate": float(row.null_moves_rate) if row else 0.0,
+            "missing_player_rate": float(row.missing_player_rate) if row else 0.0,
+            "missing_result_rate": float(row.missing_result_rate) if row else 0.0
+        }
 
     async def _get_opening_name(self, eco_code: str) -> str:
         """Get opening name from ECO code."""
@@ -306,70 +361,3 @@ class AnalysisRepository:
         name = row[0] if row else eco_code
         self.cache.set(cache_key, name)
         return name
-
-    async def _get_basic_stats(self) -> Dict[str, Any]:
-        """Get basic database statistics."""
-        total_games = await self.db.scalar(select(func.count()).select_from(GameDB))
-        total_players = await self.db.scalar(select(func.count()).select_from(PlayerDB))
-        
-        return {
-            "total_games": total_games,
-            "total_players": total_players,
-            "last_updated": datetime.utcnow()
-        }
-
-    async def _get_performance_metrics(self) -> Dict[str, Any]:
-        """Get database performance metrics."""
-        # This would typically come from your monitoring system
-        return {
-            "avg_query_time": 45.2,
-            "queries_per_second": 100.5,
-            "cache_hit_ratio": 85.5
-        }
-
-    async def _get_growth_trends(
-        self,
-        start_date: Optional[str],
-        end_date: Optional[str]
-    ) -> Dict[str, Any]:
-        """Get database growth trends."""
-        query = """
-            SELECT 
-                date_trunc('day', date) as day,
-                COUNT(*) as games,
-                COUNT(DISTINCT white_player_id) + 
-                COUNT(DISTINCT black_player_id) as players,
-                SUM(length(moves::text)) as storage
-            FROM games
-            WHERE (:start_date::date IS NULL OR date >= :start_date::date)
-            AND (:end_date::date IS NULL OR date <= :end_date::date)
-            GROUP BY day
-            ORDER BY day
-        """
-        
-        result = await self.db.execute(
-            text(query),
-            {"start_date": start_date, "end_date": end_date}
-        )
-        rows = result.fetchall()
-        
-        return {
-            "growth_trend": [
-                {
-                    "date": row.day,
-                    "total_games": row.games,
-                    "total_players": row.players,
-                    "storage_used": row.storage / (1024 * 1024)  # Convert to MB
-                }
-                for row in rows
-            ]
-        }
-
-    async def _get_health_metrics(self) -> Dict[str, Any]:
-        """Get database health metrics."""
-        # This would typically come from your monitoring system
-        return {
-            "index_health": 95.5,
-            "replication_lag": 0.5,
-            "capacity_used": 65.5
-        }

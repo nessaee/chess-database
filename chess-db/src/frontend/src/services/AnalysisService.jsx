@@ -47,14 +47,13 @@ export class AnalysisService {
   /**
    * Fetches database metrics and trends.
    * 
-   * @param {string} timePeriod - Time period for metrics (1m, 3m, 6m, 1y)
    * @returns {Promise<Object>} Database metrics data
    */
-  async getDatabaseMetrics(timePeriod = '1m') {
-    const cacheKey = `db-metrics-${timePeriod}`;
+  async getDatabaseMetrics() {
+    const cacheKey = 'db-metrics';
     return this.getCachedData(cacheKey, async () => {
       const response = await fetch(
-        `${this.baseUrl}/analysis/database-metrics?time_period=${timePeriod}`
+        `${this.baseUrl}/analysis/database-metrics`
       );
       return this.handleResponse(response);
     });

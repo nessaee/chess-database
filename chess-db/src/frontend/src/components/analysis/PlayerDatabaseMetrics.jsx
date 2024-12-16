@@ -63,9 +63,9 @@ export const PlayerMetricsView = ({ data }) => {
  * @param {Object} props.data - Database metrics data
  * @param {number} props.data.totalGames - Total games in database
  * @param {number} props.data.totalPlayers - Total players in database
- * @param {number} props.data.avgResponseTime - Average query response time
- * @param {Array} props.data.growth - Database growth metrics over time
- * @param {Array} props.data.performance - Query performance metrics
+ * @param {Object} props.data.performance - Performance metrics
+ * @param {Object} props.data.growthTrends - Growth trends
+ * @param {Object} props.data.healthMetrics - Health metrics
  */
 export const DatabaseMetricsView = ({ data }) => {
   if (!data) return null;
@@ -85,16 +85,91 @@ export const DatabaseMetricsView = ({ data }) => {
           icon={<User className="h-8 w-8 text-green-500" />}
         />
         <MetricCard
-          title="Avg Response Time"
-          value={`${data.avgResponseTime}ms`}
+          title="Avg Moves/Game"
+          value={data.avgMovesPerGame?.toFixed(1)}
           icon={<Activity className="h-8 w-8 text-purple-500" />}
         />
       </div>
 
-      {/* Database Performance Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DatabaseGrowthChart data={data.growth} />
-        <QueryPerformanceChart data={data.performance} />
+      {/* Performance Metrics */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="White Win Rate"
+            value={`${(data.performance?.white_win_rate * 100).toFixed(1)}%`}
+            icon={<TrendingUp className="h-8 w-8 text-green-500" />}
+          />
+          <MetricCard
+            title="Draw Rate"
+            value={`${(data.performance?.draw_rate * 100).toFixed(1)}%`}
+            icon={<Activity className="h-8 w-8 text-yellow-500" />}
+          />
+          <MetricCard
+            title="Avg Game Length"
+            value={data.performance?.avg_game_length?.toFixed(1)}
+            icon={<AlertCircle className="h-8 w-8 text-blue-500" />}
+          />
+        </div>
+      </div>
+
+      {/* Growth Trends */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-semibold mb-4">Growth Trends</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-sm font-medium mb-2">Monthly Averages</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <MetricCard
+                title="Games"
+                value={data.growthTrends?.avg_monthly_games?.toFixed(0)}
+                icon={<Database className="h-6 w-6 text-blue-500" />}
+              />
+              <MetricCard
+                title="Players"
+                value={data.growthTrends?.avg_monthly_players?.toFixed(0)}
+                icon={<User className="h-6 w-6 text-green-500" />}
+              />
+            </div>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium mb-2">Peak Numbers</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <MetricCard
+                title="Games"
+                value={data.growthTrends?.peak_monthly_games?.toLocaleString()}
+                icon={<Database className="h-6 w-6 text-blue-500" />}
+              />
+              <MetricCard
+                title="Players"
+                value={data.growthTrends?.peak_monthly_players?.toLocaleString()}
+                icon={<User className="h-6 w-6 text-green-500" />}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Health Metrics */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-lg font-semibold mb-4">Data Quality</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Missing Moves"
+            value={`${(data.healthMetrics?.null_moves_rate * 100).toFixed(2)}%`}
+            icon={<AlertCircle className="h-8 w-8 text-red-500" />}
+          />
+          <MetricCard
+            title="Missing Players"
+            value={`${(data.healthMetrics?.missing_player_rate * 100).toFixed(2)}%`}
+            icon={<AlertCircle className="h-8 w-8 text-yellow-500" />}
+          />
+          <MetricCard
+            title="Missing Results"
+            value={`${(data.healthMetrics?.missing_result_rate * 100).toFixed(2)}%`}
+            icon={<AlertCircle className="h-8 w-8 text-orange-500" />}
+          />
+        </div>
       </div>
     </div>
   );
