@@ -78,7 +78,7 @@ export class AnalysisService {
         ...(endDate && { end_date: endDate })
       });
       const response = await fetch(
-        `${this.baseUrl}/analysis/player/${playerId}/openings?${params}`
+        `${this.baseUrl}/analysis/players/${playerId}/openings?${params}`
       );
       return this.handleResponse(response);
     });
