@@ -102,11 +102,11 @@ const OpeningRow = ({ opening }) => {
           <div className="font-medium text-gray-900">
             {opening.opening_name}
           </div>
-          {opening.message && (
+          {/* {opening.message && (
             <div className="text-sm text-gray-500 mt-1">
               {opening.message}
             </div>
-          )}
+          )} */}
         </td>
         <td className="p-4 text-right">
           <span className="font-medium">{opening.total_games}</span>
@@ -322,37 +322,35 @@ export default function OpeningAnalysisView({ data = {} }) {
           <div>
             <span className="text-gray-500">Total Games:</span>{' '}
             <span className="font-medium">{total_games}</span>
-            <div className="text-sm mt-1">
-              <span className={`${getWinRateColor((total_wins / total_games) * 100)}`}>
+            <div className="space-y-1 mt-2">
+              <div className={`text-sm ${getWinRateColor((total_wins / total_games) * 100)}`}>
                 W: {total_wins} ({formatWinRate((total_wins / total_games) * 100)})
-              </span>
-              <span className="text-gray-500 mx-1">·</span>
-              <span className="text-blue-600">
+              </div>
+              <div className="text-sm text-blue-600">
                 D: {total_draws} ({formatWinRate((total_draws / total_games) * 100)})
-              </span>
-              <span className="text-gray-500 mx-1">·</span>
-              <span className="text-red-600">
+              </div>
+              <div className="text-sm text-red-600">
                 L: {total_losses} ({formatWinRate((total_losses / total_games) * 100)})
-              </span>
+              </div>
             </div>
           </div>
           <div>
             <span className="text-gray-500">Total Openings:</span>{' '}
             <span className="font-medium">{openingData.total_openings}</span>
-            <div className="text-sm text-gray-500 mt-1">
+            <div className="text-sm text-gray-500 mt-2">
               Avg. Length: {avg_game_length.toFixed(1)} moves
             </div>
           </div>
           {most_successful && (
             <div>
               <span className="text-gray-500">Most Successful:</span>{' '}
-              <div className="font-medium text-sm mt-1 text-emerald-600">{most_successful}</div>
+              <div className="font-medium text-sm mt-2 text-emerald-600">{most_successful}</div>
             </div>
           )}
           {most_played && (
             <div>
               <span className="text-gray-500">Most Played:</span>{' '}
-              <div className="font-medium text-sm mt-1 text-blue-600">{most_played}</div>
+              <div className="font-medium text-sm mt-2 text-blue-600">{most_played}</div>
             </div>
           )}
         </div>
@@ -413,31 +411,32 @@ export default function OpeningAnalysisView({ data = {} }) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th scope="col" className="w-8 p-4"></th>
                 <th scope="col" className="p-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('opening_name')}>
                   Opening
                   {sortConfig.key === 'opening_name' && (
                     <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </th>
-                <th scope="col" className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('total_games')}>
+                <th scope="col" className="w-24 p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('total_games')}>
                   Games
                   {sortConfig.key === 'total_games' && (
                     <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </th>
-                <th scope="col" className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('games_as_white')}>
+                <th scope="col" className="w-28 p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('games_as_white')}>
                   As White
                   {sortConfig.key === 'games_as_white' && (
                     <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </th>
-                <th scope="col" className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('games_as_black')}>
+                <th scope="col" className="w-28 p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('games_as_black')}>
                   As Black
                   {sortConfig.key === 'games_as_black' && (
                     <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                   )}
                 </th>
-                <th scope="col" className="p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('win_rate')}>
+                <th scope="col" className="w-24 p-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('win_rate')}>
                   Win Rate
                   {sortConfig.key === 'win_rate' && (
                     <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
