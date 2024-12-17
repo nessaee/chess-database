@@ -74,7 +74,7 @@ export default function ChessAnalysis() {
           playerService.getPlayerPerformance(playerId, {
             timeRange,
             startDate: dateRange?.start,
-            endDate: dateRange?.end
+            endDate: dateRange?.end,
           }),
           analysisService.getPlayerOpeningAnalysis(playerId, {
             minGames,
@@ -98,17 +98,6 @@ export default function ChessAnalysis() {
     fetchPlayerData();
   }, [playerId, timeRange, dateRange, minGames]);
 
-  const handlePlayerSearch = (player) => {
-    if (!player || !player.id) {
-      setError('Invalid player selection');
-      return;
-    }
-
-    setPlayerId(player.id);
-    setPlayerName(player.name);
-    setError(null);
-  };
-
   const handleDateChange = (type, value) => {
     setDateRange(prev => ({
       ...prev,
@@ -116,105 +105,43 @@ export default function ChessAnalysis() {
     }));
   };
 
-  // Loading state handler
-  if (isLoading) {
-    return <LoadingState message={`Loading ${activeView} analysis data...`} />;
-  }
-
-  // Error state handler
-  if (error) {
-    return (
-      <ErrorState
-        error={error}
-        onRetry={() => {
-          setError(null);
-          if (playerId) {
-            handlePlayerSearch({ id: playerId, name: playerName });
-          }
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-4">Chess Analysis Dashboard</h1>
-      <p className="text-gray-600 mb-8">
-        Comprehensive analysis of chess games, openings, player performance, and database metrics
-      </p>
-
-      {/* Navigation Tabs */}
-      <div className="flex space-x-4 mb-8">
-        <button
-          onClick={() => setActiveView('general')}
-          className={`px-4 py-2 rounded ${
-            activeView === 'general'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          General Statistics
-        </button>
-        <button
-          onClick={() => setActiveView('player')}
-          className={`px-4 py-2 rounded ${
-            activeView === 'player'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Player Analysis
-        </button>
-        <button
-          onClick={() => setActiveView('database')}
-          className={`px-4 py-2 rounded ${
-            activeView === 'database'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Database Metrics
-        </button>
-      </div>
-
-      {/* Analysis Interface */}
+    <div className="space-y-6">
       <AnalysisInterface
         timeRange={timeRange}
         dateRange={dateRange}
         minGames={minGames}
         onTimeRangeChange={setTimeRange}
-        onDateRangeChange={handleDateChange}
+        onDateRangeChange={setDateRange}
         onMinGamesChange={setMinGames}
-        onPlayerSearch={handlePlayerSearch}
+        onPlayerSearch={(player) => {
+          setPlayerName(player.name);
+          setPlayerId(player.id);
+        }}
         playerName={playerName}
       />
 
-      {/* View Content */}
-      <div className="mt-8">
-        {activeView === 'general' && (
-          <div className="space-y-8">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Move Distribution</h2>
+      {isLoading && <LoadingState />}
+      {error && <ErrorState message={error} />}
+      
+      {!isLoading && !error && (
+        <div className="space-y-8">
+          {activeView === 'general' && (
+            <div className="space-y-8">
               <MoveDistributionChart data={moveData} />
+              <DatabaseMetricsView data={dbMetrics} />
             </div>
-          </div>
-        )}
-
-        {activeView === 'player' && playerId && playerName && (
-          <PlayerAnalysisView
-            performanceData={performanceData}
-            openingAnalysis={openingAnalysis}
-            databaseMetrics={dbMetrics}
-          />
-        )}
-
-        {activeView === 'database' && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Database Metrics</h2>
-            <DatabaseMetricsView data={dbMetrics} />
-          </div>
-        )}
-      </div>
+          )}
+          
+          {activeView === 'player' && playerId && (
+            <PlayerAnalysisView
+              performanceData={performanceData}
+              openingAnalysis={openingAnalysis}
+              databaseMetrics={dbMetrics}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

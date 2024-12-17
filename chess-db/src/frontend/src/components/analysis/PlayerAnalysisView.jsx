@@ -17,7 +17,7 @@ export default function PlayerAnalysisView({ performanceData, openingAnalysis, d
             <h2 className="text-lg font-semibold text-gray-900">Performance Metrics</h2>
           </div>
           <div className="p-4">
-            <PlayerMetricsView data={performanceData} />
+            <PlayerMetricsView performanceData={performanceData} />
           </div>
         </div>
 
@@ -45,4 +45,4 @@ export default function PlayerAnalysisView({ performanceData, openingAnalysis, d
       </div>
     </div>
   );
-};
+}

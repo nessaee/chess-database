@@ -1,146 +1,347 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, Legend 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, Legend, Area, ComposedChart
 } from 'recharts';
-import { AlertCircle, Activity, TrendingUp } from 'lucide-react';
+import { Activity, TrendingUp, Award, Clock, Shuffle } from 'lucide-react';
 import MetricCard from './shared/MetricCard';
+
+const formatDate = (timePeriod, timeScale) => {
+  const date = new Date(timePeriod);
+  if (timeScale === 'year') {
+    return date.getFullYear().toString();
+  }
+  return `${date.getFullYear()}-${date.toLocaleDateString('en-US', { month: 'short' })}`;
+};
 
 /**
  * Performance trend visualization component
- * @param {Object} props - Component properties
- * @param {Array} props.data - Performance trend data
  */
-export const PerformanceTrendChart = ({ data }) => (
-  <div className="bg-white p-4 rounded-lg shadow">
-    <h3 className="text-lg font-medium mb-4">Performance Trend</h3>
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Line type="monotone" dataKey="winRate" stroke="#10B981" name="Win Rate %" />
-          <Line type="monotone" dataKey="rating" stroke="#6366F1" name="Rating" />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-);
+const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
+  const [visibleTrends, setVisibleTrends] = useState({
+    games: true,
+    rating: true,
+    winRate: false,
+    openingDiversity: false
+  });
 
-/**
- * Color performance statistics visualization
- * @param {Object} props - Component properties
- * @param {Array} props.data - Color performance data
- */
-export const ColorPerformanceChart = ({ data }) => (
-  <div className="bg-white p-4 rounded-lg shadow">
-    <h3 className="text-lg font-medium mb-4">Color Performance</h3>
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="color" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="gamesPlayed" fill="#6366F1" name="Games Played" />
-          <Bar dataKey="wins" fill="#10B981" name="Wins" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-);
+  // Chart configuration
+  const maxGames = Math.max(...data.map(d => d.games_played));
+  const gamesPadding = Math.ceil(maxGames * 0.1);
+  const minRating = Math.min(...data.map(d => d.rating));
+  const maxRating = Math.max(...data.map(d => d.rating));
+  const ratingPadding = Math.ceil((maxRating - minRating) * 0.1);
 
-/**
- * Game length distribution visualization
- * @param {Object} props - Component properties
- * @param {Array} props.data - Game length distribution data
- */
-export const GameLengthDistribution = ({ data }) => (
-  <div className="bg-white p-4 rounded-lg shadow">
-    <h3 className="text-lg font-medium mb-4">Game Length Distribution</h3>
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="moves" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="games" fill="#6366F1" name="Games" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-);
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h3 className="text-lg font-medium mb-4">Performance Trend</h3>
+      
+      <div className="flex gap-4 mb-4">
+        {/* Trend toggles */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setVisibleTrends(prev => ({ ...prev, games: !prev.games }))}
+            className={`px-3 py-1 rounded ${
+              visibleTrends.games ? 'bg-gray-200 text-gray-800' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            Games Played
+          </button>
+          <button
+            onClick={() => setVisibleTrends(prev => ({ ...prev, rating: !prev.rating }))}
+            className={`px-3 py-1 rounded ${
+              visibleTrends.rating ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            Rating
+          </button>
+          <button
+            onClick={() => setVisibleTrends(prev => ({ ...prev, winRate: !prev.winRate }))}
+            className={`px-3 py-1 rounded ${
+              visibleTrends.winRate ? 'bg-green-200 text-green-800' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            Win Rate
+          </button>
+          <button
+            onClick={() => setVisibleTrends(prev => ({ ...prev, openingDiversity: !prev.openingDiversity }))}
+            className={`px-3 py-1 rounded ${
+              visibleTrends.openingDiversity ? 'bg-purple-200 text-purple-800' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
+            Opening Diversity
+          </button>
+        </div>
 
-/**
- * Opening Analysis View
- * @param {Object} props - Component properties
- * @param {Object} props.data - Opening analysis data
- */
-export const OpeningAnalysisView = ({ data }) => (
-  <div className="bg-white p-4 rounded-lg shadow">
-    <h3 className="text-lg font-medium mb-4">Opening Analysis</h3>
-    <div className="h-80">
-      {/* Opening analysis visualization */}
+        {/* Time scale toggle */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTimeScale('month')}
+            className={`px-3 py-1 rounded ${
+              timeScale === 'month' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setTimeScale('year')}
+            className={`px-3 py-1 rounded ${
+              timeScale === 'year' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Yearly
+          </button>
+        </div>
+      </div>
+
+      <div className="h-[600px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart 
+            data={data}
+            margin={{ top: 20, right: 140, bottom: 100, left: 120 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="time_period" 
+              tickFormatter={(value) => formatDate(value, timeScale)} 
+              angle={-45}
+              textAnchor="end"
+              height={100}
+              interval={timeScale === 'year' ? 0 : 6}
+              label={{ 
+                value: 'Time Period', 
+                position: 'bottom',
+                offset: 60
+              }}
+              tick={{
+                fontSize: 12,
+                dy: 20
+              }}
+            />
+            {/* Games Played Axis (Hidden) */}
+            <YAxis 
+              yAxisId="games"
+              orientation="left"
+              domain={[0, maxGames + gamesPadding]}
+              axisLine={false}
+              tick={false}
+              width={60}
+            />
+            {/* Percentage Axis */}
+            <YAxis 
+              yAxisId="percentage" 
+              orientation="left" 
+              domain={[0, 100]}
+              label={{ 
+                value: 'Percentage', 
+                angle: -90, 
+                position: 'insideLeft',
+                offset: -40
+              }}
+              tickFormatter={(value) => value}
+              tick={{
+                fontSize: 12,
+                dx: -10
+              }}
+              width={120}
+            />
+            {/* Rating Axis */}
+            <YAxis 
+              yAxisId="right" 
+              orientation="right" 
+              domain={[minRating - ratingPadding, maxRating + ratingPadding]}
+              label={{ 
+                value: 'Rating', 
+                angle: 90, 
+                position: 'insideRight',
+                offset: 60
+              }}
+              tickFormatter={(value) => Math.round(value)}
+              tick={{
+                fontSize: 12,
+                dx: 10
+              }}
+              width={120}
+            />
+            
+            <Tooltip 
+              labelFormatter={(value) => formatDate(value, timeScale)}
+              formatter={(value, name) => {
+                switch(name) {
+                  case 'Win Rate':
+                  case 'Opening Diversity':
+                    return [`${value}%`, name];
+                  case 'Rating':
+                    return [Math.round(value), name];
+                  case 'Games Played':
+                    return [value, name];
+                  default:
+                    return [value, name];
+                }
+              }}
+            />
+
+            {visibleTrends.games && (
+              <Line
+                yAxisId="games"
+                type="monotone"
+                dataKey="games_played"
+                name="Games Played"
+                stroke="#9CA3AF"
+                dot={false}
+                strokeWidth={1}
+              />
+            )}
+            {visibleTrends.rating && (
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="rating"
+                name="Rating"
+                stroke="#3B82F6"
+                dot={false}
+                strokeWidth={2}
+              />
+            )}
+            {visibleTrends.winRate && (
+              <Line
+                yAxisId="percentage"
+                type="monotone"
+                dataKey="win_rate"
+                name="Win Rate"
+                stroke="#10B981"
+                dot={false}
+                strokeWidth={2}
+              />
+            )}
+            {visibleTrends.openingDiversity && (
+              <Line
+                yAxisId="percentage"
+                type="monotone"
+                dataKey="opening_diversity"
+                name="Opening Diversity"
+                stroke="#8B5CF6"
+                dot={false}
+                strokeWidth={2}
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /**
  * Player Metrics Component - Displays comprehensive player performance analytics
  * @param {Object} props - Component properties
- * @param {Object} props.data - Player performance data
- * @param {Object} props.openingAnalysis - Opening analysis data
+ * @param {Array} props.performanceData - Player performance data array
  */
-export default function PlayerMetricsView({ data = {} }) {
-  const { 
-    overallWinRate = 0, 
-    totalGames = 0, 
-    peakRating = 0, 
-    trend = [], 
-    colorStats = [], 
-    gameLengths = [] 
-  } = data || {};
+export default function PlayerMetricsView({ performanceData = [] }) {
+  const [timeScale, setTimeScale] = useState('month'); // 'month' or 'year'
+
+  const metrics = useMemo(() => {
+    if (!performanceData?.length) return null;
+
+    const latestData = performanceData[performanceData.length - 1];
+    const totalGames = performanceData.reduce((sum, month) => sum + month.games_played, 0);
+    const weightedWinRate = performanceData.reduce((sum, month) => 
+      sum + (month.win_rate * month.games_played), 0) / totalGames;
+    const maxRating = Math.max(...performanceData.map(month => month.avg_elo));
+    const avgGameLength = performanceData.reduce((sum, month) => 
+      sum + (month.avg_game_length * month.games_played), 0) / totalGames;
+    const avgOpeningDiversity = performanceData.reduce((sum, month) => 
+      sum + (month.opening_diversity * month.games_played), 0) / totalGames;
+
+    return {
+      totalGames,
+      winRate: weightedWinRate,
+      peakRating: maxRating,
+      avgGameLength: Math.round(avgGameLength),
+      openingDiversity: avgOpeningDiversity * 100
+    };
+  }, [performanceData]);
+
+  if (!metrics) {
+    return <div className="text-gray-500">No performance data available</div>;
+  }
+
+  // Group data by year if yearly scale is selected
+  const getScaledData = () => {
+    if (timeScale === 'year') {
+      const yearlyData = {};
+      performanceData.forEach(item => {
+        const year = new Date(item.time_period).getFullYear();
+        if (!yearlyData[year]) {
+          yearlyData[year] = {
+            time_period: `${year}-01-01`,
+            games_played: 0,
+            rating: 0,
+            win_rate: 0,
+            opening_diversity: 0,
+            count: 0
+          };
+        }
+        yearlyData[year].games_played += item.games_played;
+        yearlyData[year].rating += item.avg_elo;
+        yearlyData[year].win_rate += item.win_rate;
+        yearlyData[year].opening_diversity += item.opening_diversity;
+        yearlyData[year].count += 1;
+      });
+
+      return Object.values(yearlyData).map(item => ({
+        ...item,
+        rating: Math.round(item.rating / item.count),
+        win_rate: item.win_rate / item.count,
+        opening_diversity: item.opening_diversity / item.count
+      }));
+    }
+    return performanceData.map(item => ({
+      ...item,
+      rating: item.avg_elo
+    }));
+  };
+
+  const data = getScaledData();
 
   return (
     <div className="space-y-8">
       {/* Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <MetricCard
           title="Overall Win Rate"
-          value={`${Number(overallWinRate).toFixed(1)}%`}
+          value={`${metrics.winRate.toFixed(1)}%`}
           icon={<TrendingUp className="h-8 w-8" />}
+          description="Weighted average across all games"
         />
         <MetricCard
           title="Total Games"
-          value={totalGames}
+          value={metrics.totalGames}
           icon={<Activity className="h-8 w-8" />}
+          description="Total games played in period"
         />
         <MetricCard
           title="Peak Rating"
-          value={peakRating}
-          icon={<AlertCircle className="h-8 w-8" />}
+          value={metrics.peakRating}
+          icon={<Award className="h-8 w-8" />}
+          description="Highest average rating achieved"
+        />
+        <MetricCard
+          title="Avg Game Length"
+          value={`${metrics.avgGameLength}`}
+          icon={<Clock className="h-8 w-8" />}
+          description="Average moves per game"
+        />
+        <MetricCard
+          title="Opening Diversity"
+          value={`${metrics.openingDiversity.toFixed(1)}%`}
+          icon={<Shuffle className="h-8 w-8" />}
+          description="Variety in opening choices"
         />
       </div>
 
-      {/* Performance Charts */}
-      {trend.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PerformanceTrendChart data={trend} />
-          <ColorPerformanceChart data={colorStats} />
-        </div>
-      )}
-
-      {/* Game Length Distribution */}
-      {gameLengths.length > 0 && (
-        <div className="mt-8">
-          <GameLengthDistribution data={gameLengths} />
-        </div>
-      )}
+      {/* Performance Trend Chart */}
+      <PerformanceTrendChart data={data} timeScale={timeScale} setTimeScale={setTimeScale} />
     </div>
   );
-};
+}

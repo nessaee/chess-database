@@ -357,7 +357,7 @@ async def get_popular_openings(
             detail="Failed to get popular openings"
         )
 
-@router.get("/player/{player_name}/performance", response_model=DetailedPerformanceResponse)
+@router.get("/players/{player_name}/performance", response_model=DetailedPerformanceResponse)
 async def get_player_performance_by_name(
     response: Response,
     player_name: str = Path(..., description="Name of the player to analyze"),

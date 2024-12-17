@@ -49,24 +49,20 @@ export class PlayerService extends BaseService {
    * @returns {Promise<Array>} Performance statistics
    */
   async getPlayerPerformance(playerId, options = {}) {
-    const { timeRange = 'monthly', startDate, endDate } = options;
     try {
       const params = {
-        time_range: timeRange,
+        time_range: options.timeRange || 'monthly',
+        start_date: options.startDate,
+        end_date: options.endDate
       };
-      
-      // Only add date parameters if they are valid
-      if (startDate && startDate.trim()) {
-        params.start_date = startDate;
-      }
-      if (endDate && endDate.trim()) {
-        params.end_date = endDate;
-      }
 
-      return await this.get(`/players/${playerId}/performance`, params);
+      const cacheKey = `player_performance_${playerId}_${JSON.stringify(params)}`;
+      return await this.getCachedData(cacheKey, () => 
+        this.get(`/players/${playerId}/performance`, params)
+      );
     } catch (error) {
       console.error('Error fetching player performance:', error);
-      throw new Error('Failed to fetch player performance');
+      throw new Error('Failed to fetch player performance data');
     }
   }
 
@@ -98,7 +94,7 @@ export class PlayerService extends BaseService {
         params.end_date = endDate;
       }
 
-      return await this.get(`/players/${playerId}/openings`, params);
+      return await this.get(`/analysis/players/${playerId}/openings`, params);
     } catch (error) {
       console.error('Error fetching player openings:', error);
       throw new Error('Failed to fetch player openings');
@@ -117,7 +113,7 @@ export class PlayerService extends BaseService {
       if (timePeriod) {
         params.time_period = timePeriod;
       }
-      return await this.get(`/players/${playerId}/detailed-stats`, params);
+      return await this.get(`/analysis/players/${playerId}/detailed-stats`, params);
     } catch (error) {
       console.error('Error fetching detailed stats:', error);
       throw new Error('Failed to fetch detailed statistics');

@@ -85,8 +85,8 @@ export class AnalysisService extends BaseService {
     return this.playerService.searchPlayers(query, limit);
   }
 
-  getPlayerPerformance(playerName, options) {
-    return this.playerService.getPlayerPerformance(playerName, options);
+  getPlayerPerformance(playerId, options) {
+    return this.playerService.getPlayerPerformance(playerId, options);
   }
 
   // Delegate game-related methods to GameService
