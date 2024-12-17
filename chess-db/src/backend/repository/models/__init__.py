@@ -15,8 +15,11 @@ from .player import PlayerDB, PlayerResponse, PlayerSearchResponse, PlayerPerfor
 from .analysis import (
     MoveCountAnalysis,
     OpeningAnalysis,
-    OpeningAnalysisResponse,
     DatabaseMetricsResponse
+)
+from .opening import (
+    OpeningStats,
+    OpeningAnalysisResponse
 )
 
 __all__ = [
@@ -31,8 +34,9 @@ __all__ = [
     'PlayerDB', 'PlayerResponse', 'PlayerSearchResponse',
     'PlayerPerformanceResponse', 'DetailedPerformanceResponse',
     
+    # Opening models
+    'OpeningStats', 'OpeningAnalysisResponse', 'TrendData',
+    
     # Analysis models
-    'MoveCountAnalysis', 
-    'OpeningAnalysis', 'OpeningAnalysisResponse',
-    'DatabaseMetricsResponse'
+    'MoveCountAnalysis', 'DatabaseMetricsResponse'
 ]
