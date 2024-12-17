@@ -196,6 +196,77 @@ class GameRepository:
             logger.error(f"Error in get_game_by_id: {str(e)}")
             raise DatabaseOperationError(f"Failed to fetch game: {str(e)}")
 
+    async def get_player_games(
+            self,
+            player_name: str,
+            start_date: Optional[str] = None,
+            end_date: Optional[str] = None,
+            only_dated: bool = False,
+            limit: int = 50,
+            move_notation: str = 'uci'
+        ) -> List[GameResponse]:
+        """
+        Retrieve games for a specific player.
+        
+        Args:
+            player_name: Name of the player to fetch games for
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            only_dated: If True, only return games with dates
+            limit: Maximum number of games to return
+            move_notation: Move notation format ('uci' or 'san')
+            
+        Returns:
+            List of GameResponse objects
+            
+        Raises:
+            DatabaseOperationError: If there's an error fetching or processing games
+        """
+        try:
+            # Build base query
+            query = (
+                select(GameDB)
+                .options(
+                    joinedload(GameDB.white_player),
+                    joinedload(GameDB.black_player)
+                )
+                .join(PlayerDB, or_(
+                    GameDB.white_player_id == PlayerDB.id,
+                    GameDB.black_player_id == PlayerDB.id
+                ))
+                .where(PlayerDB.name == player_name)
+            )
+
+            # Apply date filters if provided
+            if start_date:
+                start_date = self.date_handler.parse_date(start_date)
+                query = query.where(GameDB.date >= start_date)
+            if end_date:
+                end_date = self.date_handler.parse_date(end_date)
+                query = query.where(GameDB.date <= end_date)
+            if only_dated:
+                query = query.where(GameDB.date.isnot(None))
+
+            # Order by date descending and limit results
+            query = query.order_by(GameDB.date.desc()).limit(limit)
+
+            # Execute query
+            result = await self.db.execute(query)
+            games = result.unique().scalars().all()
+
+            # Convert to response models, filtering out None responses
+            responses = []
+            for game in games:
+                response = self.decoder.to_response(game, move_notation=move_notation)
+                if response is not None:
+                    responses.append(response)
+
+            return responses
+
+        except Exception as e:
+            logger.error(f"Error fetching games for player {player_name}: {e}")
+            raise DatabaseOperationError(f"Failed to fetch games for player: {str(e)}")
+
     async def suggest_players(
             self,
             name: str,

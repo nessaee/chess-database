@@ -84,7 +84,7 @@ class DateHandler:
         self,
         date_str: Optional[str],
         field_name: str
-    ) -> Optional[date]:
+    ) -> Optional[str]:
         """
         Validate and parse date string into standard format.
         
@@ -93,18 +93,24 @@ class DateHandler:
             field_name: Name of field for error messages
             
         Returns:
-            Validated date object or None if not provided
+            Validated date string in YYYY-MM-DD format or None if not provided
             
         Raises:
             HTTPException: If date string is invalid
         """
-        if not date_str:
+        self.logger.debug(f"Validating date for {field_name}: {date_str}")
+        
+        if date_str is None or date_str.strip() == '':
+            self.logger.debug(f"No date provided for {field_name}")
             return None
             
+        date_str = date_str.strip()
         for fmt in self.date_formats:
             try:
                 parsed_date = datetime.strptime(date_str, fmt)
-                return parsed_date.date()
+                result = parsed_date.date().isoformat()
+                self.logger.debug(f"Successfully parsed date {date_str} as {result}")
+                return result
             except ValueError:
                 continue
                 

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, date
 import logging
 
 from database import get_session
+from repository import PlayerRepository, AnalysisRepository
 from repository.models import (
     MoveCountAnalysis,
     PlayerPerformanceResponse,
@@ -18,7 +19,7 @@ from repository.models import (
     PlayerSearchResponse,
     DetailedPerformanceResponse
 )
-from repository.analysis import AnalysisRepository, AnalysisCacheManager
+from repository.analysis import AnalysisCacheManager
 from config import CACHE_CONTROL_HEADER
 from repository.models.opening import PopularOpeningStats
 from repository import opening_repository
@@ -143,81 +144,81 @@ async def get_player_openings(
             detail="Failed to get player opening analysis"
         )
 
-@router.get("/players/{player_id}/performance", response_model=DetailedPerformanceResponse)
-async def get_player_performance(
-    response: Response,
-    player_id: int = Path(..., description="ID of the player to analyze", ge=1),
-    time_range: str = Query(
-        "monthly",
-        description="Time grouping (daily, weekly, monthly, yearly)"
-    ),
-    start_date: Optional[str] = Query(
-        None,
-        description="Start date (YYYY-MM-DD)",
-        regex="^\d{4}-\d{2}-\d{2}$"
-    ),
-    end_date: Optional[str] = Query(
-        None,
-        description="End date (YYYY-MM-DD)",
-        regex="^\d{4}-\d{2}-\d{2}$"
-    ),
-    db: AsyncSession = Depends(get_session)
-):
-    """Get detailed performance metrics for a player over time."""
-    try:
-        valid_ranges = ["daily", "weekly", "monthly", "yearly"]
-        if time_range not in valid_ranges:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid time_range. Must be one of: {', '.join(valid_ranges)}"
-            )
+# @router.get("/players/{player_id}/performance", response_model=DetailedPerformanceResponse)
+# async def get_player_performance(
+#     response: Response,
+#     player_id: int = Path(..., description="ID of the player to analyze", ge=1),
+#     time_range: str = Query(
+#         "monthly",
+#         description="Time grouping (daily, weekly, monthly, yearly)"
+#     ),
+#     start_date: Optional[str] = Query(
+#         None,
+#         description="Start date (YYYY-MM-DD)",
+#         regex="^\d{4}-\d{2}-\d{2}$"
+#     ),
+#     end_date: Optional[str] = Query(
+#         None,
+#         description="End date (YYYY-MM-DD)",
+#         regex="^\d{4}-\d{2}-\d{2}$"
+#     ),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     """Get detailed performance metrics for a player over time."""
+#     try:
+#         valid_ranges = ["daily", "weekly", "monthly", "yearly"]
+#         if time_range not in valid_ranges:
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail=f"Invalid time_range. Must be one of: {', '.join(valid_ranges)}"
+#             )
 
-        # Validate dates if provided
-        if start_date and end_date and start_date > end_date:
-            raise HTTPException(
-                status_code=400,
-                detail="start_date cannot be later than end_date"
-            )
+#         # Validate dates if provided
+#         if start_date and end_date and start_date > end_date:
+#             raise HTTPException(
+#                 status_code=400,
+#                 detail="start_date cannot be later than end_date"
+#             )
 
-        repo = AnalysisRepository(db)
-        performance = await repo.get_player_performance(
-            player_id=player_id,
-            time_range=time_range,
-            start_date=start_date,
-            end_date=end_date
-        )
+#         repo = AnalysisRepository(db)
+#         performance = await repo.get_player_performance(
+#             player_id=player_id,
+#             time_range=time_range,
+#             start_date=start_date,
+#             end_date=end_date
+#         )
         
-        if not performance:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No performance data available for player {player_id}"
-            )
+#         if not performance:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"No performance data available for player {player_id}"
+#             )
             
-        response.headers[CACHE_CONTROL_HEADER] = "max-age=1800"  # Cache for 30 minutes
-        return performance
+#         response.headers[CACHE_CONTROL_HEADER] = "max-age=1800"  # Cache for 30 minutes
+#         return performance
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error getting player performance: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+#     except Exception as e:
+#         logger.error(f"Error getting player performance: {e}")
+#         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/player/{player_id}/performance")
-async def get_player_performance(
-    player_id: int,
-    time_range: str = Query("monthly", description="Time range for analysis (daily, weekly, monthly, yearly)"),
-    db: AsyncSession = Depends(get_session)
-):
-    """Get performance statistics for a player over time."""
-    try:
-        repo = AnalysisRepository(db)
-        stats = await repo.get_player_performance(player_id, time_range)
-        if not stats:
-            raise HTTPException(status_code=404, detail="No performance data found")
-        return stats
-    except Exception as e:
-        logger.error(f"Error getting player performance: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get player performance")
+# @router.get("/player/{player_id}/performance")
+# async def get_player_performance(
+#     player_id: int,
+#     time_range: str = Query("monthly", description="Time range for analysis (daily, weekly, monthly, yearly)"),
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     """Get performance statistics for a player over time."""
+#     try:
+#         repo = AnalysisRepository(db)
+#         stats = await repo.get_player_performance(player_id, time_range)
+#         if not stats:
+#             raise HTTPException(status_code=404, detail="No performance data found")
+#         return stats
+#     except Exception as e:
+#         logger.error(f"Error getting player performance: {e}")
+#         raise HTTPException(status_code=500, detail="Failed to get player performance")
 
 # @router.get("/player/{player_id}/openings")
 # async def get_player_openings(
@@ -355,3 +356,72 @@ async def get_popular_openings(
             status_code=500,
             detail="Failed to get popular openings"
         )
+
+@router.get("/player/{player_name}/performance", response_model=DetailedPerformanceResponse)
+async def get_player_performance_by_name(
+    response: Response,
+    player_name: str = Path(..., description="Name of the player to analyze"),
+    time_range: str = Query(
+        "monthly",
+        description="Time grouping (daily, weekly, monthly, yearly)"
+    ),
+    start_date: Optional[str] = Query(
+        None,
+        description="Start date (YYYY-MM-DD)",
+        regex="^\d{4}-\d{2}-\d{2}$"
+    ),
+    end_date: Optional[str] = Query(
+        None,
+        description="End date (YYYY-MM-DD)",
+        regex="^\d{4}-\d{2}-\d{2}$"
+    ),
+    db: AsyncSession = Depends(get_session)
+):
+    """Get detailed performance metrics for a player by name."""
+    try:
+        # First, find the player ID by name
+        player_repo = PlayerRepository(db)
+        player = await player_repo.get_player_by_name(player_name)
+        if not player:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Player '{player_name}' not found"
+            )
+
+        # Validate time range
+        valid_ranges = ["daily", "weekly", "monthly", "yearly"]
+        if time_range not in valid_ranges:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid time_range. Must be one of: {', '.join(valid_ranges)}"
+            )
+
+        # Validate dates if provided
+        if start_date and end_date and start_date > end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date cannot be later than end_date"
+            )
+
+        repo = AnalysisRepository(db)
+        performance = await repo.get_player_performance(
+            player_id=player.id,
+            time_range=time_range,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        if not performance:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No performance data available for player {player_name}"
+            )
+            
+        response.headers[CACHE_CONTROL_HEADER] = "max-age=1800"  # Cache for 30 minutes
+        return performance
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting player performance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
