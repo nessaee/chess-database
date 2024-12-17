@@ -7,13 +7,9 @@ from datetime import datetime
 
 class MoveCountAnalysis(BaseModel):
     """Statistical analysis of move counts across chess games"""
-    actual_full_moves: int = Field(..., description="Number of full moves in game", ge=0, le=500)
-    number_of_games: int = Field(..., description="Count of games with this move count", ge=0)
+    move_count: int = Field(..., description="Number of full moves in game", ge=0, le=500)
+    game_count: int = Field(..., description="Count of games with this move count", ge=0)
     avg_bytes: float = Field(..., description="Average size of encoded game data in bytes", ge=0)
-    results: str = Field(..., description="Aggregated game results for this move count")
-    min_stored_count: Optional[int] = Field(None, description="Minimum stored move count")
-    max_stored_count: Optional[int] = Field(None, description="Maximum stored move count")
-    avg_stored_count: float = Field(..., description="Average stored move count")
 
 class PlayerPerformanceResponse(BaseModel):
     """Player performance statistics over a time period"""

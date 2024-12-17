@@ -6,6 +6,7 @@ import {
 import { MoveCountTooltip, PerformanceTooltip } from '../tooltips/ChessTooltips';
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
+
 export const MoveDistributionChart = ({ data }) => (
   <div className="bg-white rounded-lg shadow p-4">
     <h2 className="text-xl font-bold mb-4">Move Count Distribution</h2>
@@ -17,7 +18,7 @@ export const MoveDistributionChart = ({ data }) => (
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
           <XAxis 
-            dataKey="actual_full_moves"
+            dataKey="move_count"
             label={{ value: 'Number of Moves', position: 'bottom', offset: -10 }}
           />
           <YAxis 
@@ -30,7 +31,7 @@ export const MoveDistributionChart = ({ data }) => (
           />
           <Tooltip content={<MoveCountTooltip />} />
           <Bar
-            dataKey="number_of_games"
+            dataKey="game_count"
             fill="#8884d8"
             name="Games"
             radius={[4, 4, 0, 0]}
@@ -39,8 +40,19 @@ export const MoveDistributionChart = ({ data }) => (
         </BarChart>
       </ResponsiveContainer>
     </div>
+    <div className="mt-4 text-sm text-gray-500">
+      <p>Distribution of chess games by number of moves. Hover over bars for detailed information.</p>
+    </div>
   </div>
 );
+
+MoveDistributionChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    move_count: PropTypes.number.isRequired,
+    game_count: PropTypes.number.isRequired,
+    avg_bytes: PropTypes.number.isRequired
+  })).isRequired
+};
 
 
 
