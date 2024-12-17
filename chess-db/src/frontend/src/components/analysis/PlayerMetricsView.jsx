@@ -98,7 +98,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
             data={data}
-            margin={{ top: 20, right: 140, bottom: 100, left: 120 }}
+            margin={{ top: 20, right: 140, bottom: 100, left: 80 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
@@ -106,12 +106,12 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
               tickFormatter={(value) => formatDate(value, timeScale)} 
               angle={-45}
               textAnchor="end"
-              height={100}
+              height={60}
               interval={timeScale === 'year' ? 0 : 6}
               label={{ 
                 value: 'Time Period', 
                 position: 'bottom',
-                offset: 60
+                offset: 50
               }}
               tick={{
                 fontSize: 12,
@@ -125,7 +125,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
               domain={[0, maxGames + gamesPadding]}
               axisLine={false}
               tick={false}
-              width={60}
+              width={30}
             />
             {/* Percentage Axis */}
             <YAxis 
@@ -136,14 +136,18 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 value: 'Percentage', 
                 angle: -90, 
                 position: 'insideLeft',
-                offset: -40
+                offset: 0
               }}
               tickFormatter={(value) => value}
               tick={{
                 fontSize: 12,
-                dx: -10
+                dx: -5
               }}
-              width={120}
+              width={80}
+              minTickGap={5}
+              axisLine={{
+                strokeWidth: 1
+              }}
             />
             {/* Rating Axis */}
             <YAxis 
@@ -154,14 +158,18 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 value: 'Rating', 
                 angle: 90, 
                 position: 'insideRight',
-                offset: 60
+                offset: 25
               }}
               tickFormatter={(value) => Math.round(value)}
               tick={{
                 fontSize: 12,
-                dx: 10
+                dx: 5
               }}
-              width={120}
+              width={80}
+              minTickGap={5}
+              axisLine={{
+                strokeWidth: 1
+              }}
             />
             
             <Tooltip 
@@ -292,8 +300,8 @@ export default function PlayerMetricsView({ performanceData = [] }) {
       return Object.values(yearlyData).map(item => ({
         ...item,
         rating: Math.round(item.rating / item.count),
-        win_rate: item.win_rate / item.count,
-        opening_diversity: item.opening_diversity / item.count
+        win_rate: Number((item.win_rate / item.count).toFixed(2)),
+        opening_diversity: Number((item.opening_diversity / item.count).toFixed(2))
       }));
     }
     return performanceData.map(item => ({
