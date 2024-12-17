@@ -38,10 +38,12 @@ class TrendData(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> "TrendData":
-        """Create TrendData from JSON string."""
+        """Create TrendData from JSON string or dictionary."""
         if not json_str:
             return cls()
         try:
+            if isinstance(json_str, dict):
+                return cls(**json_str)
             data = json.loads(json_str) if isinstance(json_str, str) else json_str
             return cls(
                 months=data.get("months", []),
@@ -51,13 +53,17 @@ class TrendData(BaseModel):
         except (json.JSONDecodeError, AttributeError):
             return cls()
 
-    def to_json(self) -> str:
-        """Convert to JSON string."""
-        return json.dumps({
+    def dict(self, *args, **kwargs) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
             "months": self.months,
             "games": self.games,
             "win_rates": self.win_rates
-        })
+        }
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return json.dumps(self.dict())
 
 class OpeningStats(BaseModel):
     """Opening statistics model."""
@@ -74,21 +80,39 @@ class OpeningStats(BaseModel):
     games_as_white: int = Field(..., description="Games played as white")
     games_as_black: int = Field(..., description="Games played as black")
     avg_game_length: float = Field(..., description="Average game length in moves")
-    trend_data: str = Field(default="{}", description="Monthly trend data as JSON string")
+    trend_data: TrendData = Field(default_factory=TrendData, description="Monthly trend data")
     message: str = Field(..., description="Analysis message")
     type: str = Field(..., description="Type of insight")
     variations: List[Dict[str, Any]] = Field(default_factory=list, description="List of variations")
 
     @property
-    def trend_data_obj(self) -> TrendData:
-        """Get trend data as TrendData object."""
-        return TrendData.from_json(self.trend_data)
+    def draw_rate(self) -> float:
+        """Calculate draw rate."""
+        if not self.total_games:
+            return 0.0
+        return round((self.draw_count / self.total_games) * 100, 1)
+
+    @property
+    def loss_rate(self) -> float:
+        """Calculate loss rate."""
+        if not self.total_games:
+            return 0.0
+        return round((self.loss_count / self.total_games) * 100, 1)
+
+    def __init__(self, **data):
+        """Initialize OpeningStats with custom handling for trend_data."""
+        if "trend_data" in data and isinstance(data["trend_data"], str):
+            data["trend_data"] = TrendData.from_json(data["trend_data"])
+        super().__init__(**data)
 
     class Config:
         """Model configuration."""
         from_attributes = True
         populate_by_name = True
         allow_population_by_field_name = True
+        json_encoders = {
+            TrendData: lambda v: v.dict()
+        }
 
 class AnalysisInsight(BaseModel):
     """A single analysis insight"""
@@ -133,18 +157,43 @@ class OpeningAnalysisResponse(BaseModel):
     total_losses: int = Field(default=0)
     most_successful: str = Field(default="No openings found")
     most_played: str = Field(default="No openings found")
-    trend_data: str = Field(default="{}")
+    trend_data: TrendData = Field(default_factory=TrendData)
+
+    def __init__(self, **data):
+        """Initialize OpeningAnalysisResponse with custom handling for trend_data."""
+        if "trend_data" in data and isinstance(data["trend_data"], str):
+            data["trend_data"] = TrendData.from_json(data["trend_data"])
+        super().__init__(**data)
+
+    @property
+    def win_rate(self) -> float:
+        """Calculate overall win rate."""
+        if not self.total_games:
+            return 0.0
+        return round((self.total_wins / self.total_games) * 100, 1)
+
+    @property
+    def draw_rate(self) -> float:
+        """Calculate overall draw rate."""
+        if not self.total_games:
+            return 0.0
+        return round((self.total_draws / self.total_games) * 100, 1)
+
+    @property
+    def loss_rate(self) -> float:
+        """Calculate overall loss rate."""
+        if not self.total_games:
+            return 0.0
+        return round((self.total_losses / self.total_games) * 100, 1)
 
     class Config:
         """Model configuration."""
         from_attributes = True
         populate_by_name = True
         allow_population_by_field_name = True
-
-    @property
-    def trend_data_obj(self) -> TrendData:
-        """Get trend data as TrendData object."""
-        return TrendData.from_json(self.trend_data)
+        json_encoders = {
+            TrendData: lambda v: v.dict()
+        }
 
 class PopularOpeningStats(BaseModel):
     """Statistics for popular openings"""

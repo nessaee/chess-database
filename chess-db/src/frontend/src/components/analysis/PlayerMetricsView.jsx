@@ -96,17 +96,15 @@ export const OpeningAnalysisView = ({ data }) => (
  * @param {Object} props.data - Player performance data
  * @param {Object} props.openingAnalysis - Opening analysis data
  */
-export default function PlayerMetricsView({ data, openingAnalysis }) {
-  if (!data) return null;
-
+export default function PlayerMetricsView({ data = {} }) {
   const { 
-    overallWinRate, 
-    totalGames, 
-    peakRating, 
+    overallWinRate = 0, 
+    totalGames = 0, 
+    peakRating = 0, 
     trend = [], 
     colorStats = [], 
     gameLengths = [] 
-  } = data;
+  } = data || {};
 
   return (
     <div className="space-y-8">
@@ -114,7 +112,7 @@ export default function PlayerMetricsView({ data, openingAnalysis }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Overall Win Rate"
-          value={`${overallWinRate.toFixed(1)}%`}
+          value={`${Number(overallWinRate).toFixed(1)}%`}
           icon={<TrendingUp className="h-8 w-8" />}
         />
         <MetricCard
@@ -130,20 +128,19 @@ export default function PlayerMetricsView({ data, openingAnalysis }) {
       </div>
 
       {/* Performance Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PerformanceTrendChart data={trend} />
-        <ColorPerformanceChart data={colorStats} />
-      </div>
+      {trend.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PerformanceTrendChart data={trend} />
+          <ColorPerformanceChart data={colorStats} />
+        </div>
+      )}
 
       {/* Game Length Distribution */}
-      <div className="mt-8">
-        <GameLengthDistribution data={gameLengths} />
-      </div>
-
-      {/* Opening Analysis */}
-      <div className="mt-8">
-        <OpeningAnalysisView data={openingAnalysis} />
-      </div>
+      {gameLengths.length > 0 && (
+        <div className="mt-8">
+          <GameLengthDistribution data={gameLengths} />
+        </div>
+      )}
     </div>
   );
 };

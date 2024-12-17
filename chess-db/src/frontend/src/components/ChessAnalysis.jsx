@@ -106,6 +106,7 @@ export default function ChessAnalysis() {
 
     setPlayerId(player.id);
     setPlayerName(player.name);
+    setError(null);
   };
 
   const handleDateChange = (type, value) => {
@@ -199,14 +200,11 @@ export default function ChessAnalysis() {
           </div>
         )}
 
-        {activeView === 'player' && playerId && (
+        {activeView === 'player' && playerId && playerName && (
           <PlayerAnalysisView
-            data={performanceData}
-            openingAnalysis={{
-              playerId,
-              playerName,
-              ...openingAnalysis
-            }}
+            performanceData={performanceData}
+            openingAnalysis={openingAnalysis}
+            databaseMetrics={dbMetrics}
           />
         )}
 

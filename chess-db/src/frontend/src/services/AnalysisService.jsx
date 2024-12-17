@@ -62,18 +62,18 @@ export class AnalysisService extends BaseService {
   /**
    * Fetches opening analysis data for a specific player.
    * 
-   * @param {string} playerName - The name of the player to analyze
+   * @param {string} playerId - The ID of the player to analyze
    * @param {Object} options - Query options
    * @param {number} [options.minGames=20] - Minimum games threshold
    * @param {string} [options.startDate] - Start date for analysis (YYYY-MM-DD)
    * @param {string} [options.endDate] - End date for analysis (YYYY-MM-DD)
    * @returns {Promise<Object>} Opening analysis data
    */
-  async getPlayerOpeningAnalysis(playerName, { minGames = 20, startDate, endDate } = {}) {
-    if (!playerName) {
-      throw new Error('Player name is required');
+  async getPlayerOpeningAnalysis(playerId, { minGames = 20, startDate, endDate } = {}) {
+    if (!playerId) {
+      throw new Error('Player ID is required');
     }
-    return this.get(`/analysis/players/${encodeURIComponent(playerName)}/openings`, {
+    return this.get(`/analysis/players/${encodeURIComponent(playerId)}/openings`, {
       min_games: minGames.toString(),
       ...(startDate && { start_date: startDate }),
       ...(endDate && { end_date: endDate })

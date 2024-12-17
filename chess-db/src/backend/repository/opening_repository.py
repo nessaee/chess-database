@@ -176,13 +176,7 @@ async def get_player_openings(
             THEN 1 ELSE 0 END)::decimal / NULLIF(COUNT(DISTINCT pg.id), 0), 1) as win_rate,
             SUM(CASE WHEN pg.white_player_id::text = :username THEN 1 ELSE 0 END) as games_as_white,
             SUM(CASE WHEN pg.black_player_id::text = :username THEN 1 ELSE 0 END) as games_as_black,
-            ROUND(AVG(
-                CASE 
-                    WHEN pg.moves IS NOT NULL THEN 
-                        (get_byte(pg.moves::bytea, 0) << 8 | get_byte(pg.moves::bytea, 1))::integer
-                    ELSE NULL 
-                END
-            ), 1) as avg_game_length,
+            ROUND(AVG(gom.game_move_length), 1) as avg_game_length,
             json_build_object(
                 'months', COALESCE((
                     SELECT json_agg(ms.month ORDER BY ms.month DESC)
@@ -227,7 +221,7 @@ async def get_player_openings(
         s.total_wins,
         s.total_draws,
         s.total_losses,
-        s.trend_data as overall_trend_data
+        s.overall_trend_data
     FROM filtered_stats o
     CROSS JOIN (
         SELECT 
@@ -262,7 +256,7 @@ async def get_player_openings(
                     SELECT json_agg(COALESCE(win_rate_in_month, 0) ORDER BY month DESC)
                     FROM overall_monthly_stats
                 ), '[]'::json)
-            )::json as trend_data
+            )::json as overall_trend_data
         FROM filtered_stats
     ) s
     ORDER BY o.total_games DESC
