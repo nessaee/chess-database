@@ -113,8 +113,3 @@ BEGIN
     RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
-
--- Initialize the refresh status
-INSERT INTO materialized_view_refresh_status (view_name, last_refresh, refresh_in_progress)
-VALUES ('endpoint_performance_stats', NULL, FALSE)
-ON CONFLICT (view_name) DO NOTHING;

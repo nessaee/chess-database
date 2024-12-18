@@ -284,52 +284,34 @@ const EndpointPerformanceChart = ({ data = [] }) => {
  * Database Metrics View Component
  * Displays comprehensive database performance and statistics
  */
-const DatabaseMetricsView = ({ metrics }) => {
-  const [loading, setLoading] = useState(!metrics);
+const DatabaseMetricsView = ({ metrics, onRefresh }) => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [metricsData, setMetricsData] = useState(metrics || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchMetrics = async () => {
-    if (loading || isRefreshing) return; // Prevent concurrent requests
-    
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await databaseMetricsService.getDatabaseMetrics();
-      setMetricsData(data);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch database metrics');
-    } finally {
-      setLoading(false);
+  // Update metrics when prop changes
+  useEffect(() => {
+    if (metrics) {
+      setMetricsData(metrics);
     }
-  };
+  }, [metrics]);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
-      await fetchMetrics();
+      await onRefresh();
+    } catch (err) {
+      setError(err.message || 'Failed to refresh metrics');
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    if (!metrics && !metricsData) {
-      fetchMetrics();
-    }
-  }, []); // Only run on mount
-
-  useEffect(() => {
-    if (metrics && metrics !== metricsData) {
-      setMetricsData(metrics);
-    }
-  }, [metrics]);
-
-  if (loading && !metricsData) return <LoadingState />;
+  if (!metricsData) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
-  if (!metricsData) return null;
+  if (loading && metricsData) return <LoadingState />;
 
   const {
     total_games = 0,

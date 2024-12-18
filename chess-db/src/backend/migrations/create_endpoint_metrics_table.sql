@@ -17,5 +17,3 @@ CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_endpoint ON endpoint_metrics(end
 CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_method ON endpoint_metrics(method);
 CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_created_at ON endpoint_metrics(created_at);
 CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_success ON endpoint_metrics(success);
-
-$$ LANGUAGE plpgsql;

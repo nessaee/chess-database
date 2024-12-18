@@ -22,7 +22,7 @@ const playerService = new PlayerService();
 const ChessAnalysis = () => {
   // State management
   const [selectedTab, setSelectedTab] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analysisData, setAnalysisData] = useState({
     moveDistribution: [],
@@ -43,10 +43,14 @@ const ChessAnalysis = () => {
   // Fetch database metrics
   const fetchDatabaseMetrics = async () => {
     try {
+      setLoading(true);
       const metrics = await databaseMetricsService.getDatabaseMetrics();
       setAnalysisData(prev => ({ ...prev, databaseMetrics: metrics }));
     } catch (err) {
       console.error('Error fetching database metrics:', err);
+      setError('Failed to load database metrics');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -135,8 +139,21 @@ const ChessAnalysis = () => {
     }
   };
 
+  // Handle metrics refresh from child component
+  const handleMetricsRefresh = async () => {
+    await fetchDatabaseMetrics();
+  };
+
   const tabs = [
-    { name: 'Database Overview', content: <DatabaseMetricsView metrics={analysisData.databaseMetrics} /> },
+    { 
+      name: 'Database Overview', 
+      content: (
+        <DatabaseMetricsView 
+          metrics={analysisData.databaseMetrics} 
+          onRefresh={handleMetricsRefresh}
+        />
+      ) 
+    },
     {
       name: 'Player Analysis',
       content: (

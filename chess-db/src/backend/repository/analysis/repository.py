@@ -244,34 +244,29 @@ class AnalysisRepository:
         try:
             # Try to refresh the materialized view if needed
             try:
-                await self.db.execute(text("SELECT refresh_endpoint_performance_stats()"))
+                refresh_result = await self.db.execute(text("SELECT refresh_endpoint_performance_stats()"))
+                refresh_success = refresh_result.scalar()
                 await self.db.commit()
+                if refresh_success:
+                    logger.info("Successfully refreshed endpoint metrics view")
             except Exception as e:
                 logger.warning(f"Failed to refresh endpoint metrics view: {e}")
                 # Continue with potentially stale data
             
             # Query the materialized view
             query = """
+                WITH last_refresh AS (
+                    SELECT last_refresh, refresh_in_progress
+                    FROM materialized_view_refresh_status
+                    WHERE view_name = 'endpoint_performance_stats'
+                )
                 SELECT 
-                    endpoint,
-                    method,
-                    total_calls,
-                    successful_calls,
-                    error_count,
-                    avg_response_time_ms,
-                    p95_response_time_ms,
-                    p99_response_time_ms,
-                    max_response_time_ms,
-                    min_response_time_ms,
-                    success_rate,
-                    error_rate,
-                    avg_response_size_bytes,
-                    max_response_size_bytes,
-                    min_response_size_bytes,
-                    error_messages,
-                    (SELECT last_refresh FROM materialized_view_refresh_status WHERE view_name = 'endpoint_performance_stats') as last_refresh
-                FROM endpoint_performance_stats
-                ORDER BY total_calls DESC
+                    m.*,
+                    r.last_refresh,
+                    r.refresh_in_progress
+                FROM endpoint_performance_stats m
+                CROSS JOIN last_refresh r
+                ORDER BY m.total_calls DESC
             """
             
             result = await self.db.execute(text(query))
@@ -296,7 +291,8 @@ class AnalysisRepository:
                     "max_response_size": row.max_response_size_bytes if row.max_response_size_bytes is not None else 0,
                     "min_response_size": row.min_response_size_bytes if row.min_response_size_bytes is not None else 0,
                     "error_messages": row.error_messages or [],
-                    "last_refresh": row.last_refresh.isoformat() if row.last_refresh else None
+                    "last_refresh": row.last_refresh.isoformat() if row.last_refresh else None,
+                    "refresh_in_progress": row.refresh_in_progress
                 })
             
             return metrics
