@@ -75,6 +75,53 @@ class OpeningAnalysisResponse(BaseModel):
     most_successful: str = Field(..., description="Most successful opening")
     most_played: str = Field(..., description="Most frequently played opening")
 
+class EndpointMetrics(BaseModel):
+    """Performance metrics for an API endpoint"""
+    endpoint: str = Field(..., description="API endpoint path")
+    method: str = Field(..., description="HTTP method")
+    total_calls: int = Field(..., description="Total number of calls")
+    successful_calls: int = Field(..., description="Number of successful calls")
+    avg_response_time: float = Field(..., description="Average response time in milliseconds")
+    p95_response_time: float = Field(..., description="95th percentile response time")
+    p99_response_time: float = Field(..., description="99th percentile response time")
+    max_response_time: float = Field(..., description="Maximum response time")
+    min_response_time: float = Field(..., description="Minimum response time")
+    error_count: int = Field(..., description="Number of errors")
+    success_rate: float = Field(..., description="Success rate percentage")
+    error_rate: float = Field(..., description="Error rate percentage")
+    avg_response_size: float = Field(..., description="Average response size in bytes")
+    max_response_size: int = Field(..., description="Maximum response size in bytes")
+    min_response_size: int = Field(..., description="Minimum response size in bytes")
+
+class DetailedPerformanceResponse(BaseModel):
+    """Detailed performance statistics for a player."""
+    
+    # Player information
+    player_id: int
+    total_games: int
+    
+    # Performance metrics
+    win_rate: float = Field(default=0.0)
+    draw_rate: float = Field(default=0.0)
+    loss_rate: float = Field(default=0.0)
+    
+    # Opening statistics
+    opening_diversity: float = Field(default=0.0)
+    favorite_opening: str = Field(default="")
+    opening_win_rate: float = Field(default=0.0)
+    
+    # Time control statistics
+    avg_game_length: float = Field(default=0.0)
+    time_control_preference: str = Field(default="")
+    
+    # Positional statistics
+    piece_placement_accuracy: float = Field(default=0.0)
+    tactical_accuracy: float = Field(default=0.0)
+    
+    # Recent performance
+    recent_performance_trend: float = Field(default=0.0)
+    last_updated: datetime = Field(default_factory=datetime.now)
+
 class DatabaseMetricsResponse(BaseModel):
     """Overall database metrics and statistics"""
     total_games: int = Field(..., description="Total number of games in database")
@@ -99,7 +146,13 @@ class DatabaseMetricsResponse(BaseModel):
         ...,
         description="Database health metrics including data quality indicators"
     )
-    
+
+    # Endpoint performance metrics
+    endpoint_metrics: List[EndpointMetrics] = Field(
+        default_factory=list,
+        description="Performance metrics for API endpoints"
+    )
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -122,7 +175,26 @@ class DatabaseMetricsResponse(BaseModel):
                     "null_moves_rate": 0.02,
                     "missing_player_rate": 0.01,
                     "missing_result_rate": 0.03
-                }
+                },
+                "endpoint_metrics": [
+                    {
+                        "endpoint": "/api/games",
+                        "method": "GET",
+                        "total_calls": 10000,
+                        "successful_calls": 9900,
+                        "avg_response_time": 50.2,
+                        "p95_response_time": 100.5,
+                        "p99_response_time": 150.8,
+                        "max_response_time": 200.1,
+                        "min_response_time": 20.5,
+                        "error_count": 100,
+                        "success_rate": 99.0,
+                        "error_rate": 1.0,
+                        "avg_response_size": 1024.0,
+                        "max_response_size": 2048,
+                        "min_response_size": 512
+                    }
+                ]
             }
         }
     )

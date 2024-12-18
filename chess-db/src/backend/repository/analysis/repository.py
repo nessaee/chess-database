@@ -12,6 +12,7 @@ from ..models import (
     OpeningAnalysis,
     OpeningAnalysisResponse,
     DatabaseMetricsResponse,
+    EndpointMetrics,
     GameDB,
     PlayerDB
 )
@@ -161,31 +162,148 @@ class AnalysisRepository:
     async def get_database_metrics(self) -> DatabaseMetricsResponse:
         """Get database metrics."""
         try:
-            # Get basic stats
-            basic_stats = await self._get_basic_stats()
+            # Combine basic stats, performance metrics, and health metrics into a single query
+            combined_query = """
+                WITH game_stats AS (
+                    SELECT
+                        COUNT(*) as total_games,
+                        COUNT(DISTINCT COALESCE(white_player_id, black_player_id)) as total_players,
+                        AVG(array_length(string_to_array(moves::text, ' '), 1)) as avg_moves_per_game,
+                        AVG(CASE WHEN result = '1-0' THEN 1 WHEN result = '0-1' THEN 0 ELSE 0.5 END) as white_win_rate,
+                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
+                        COUNT(CASE WHEN moves IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as null_moves_rate,
+                        COUNT(CASE WHEN white_player_id IS NULL OR black_player_id IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as missing_player_rate,
+                        COUNT(CASE WHEN result IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as missing_result_rate
+                    FROM games
+                ),
+                monthly_stats AS (
+                    SELECT
+                        DATE_TRUNC('month', date) as month,
+                        COUNT(*) as games_added,
+                        COUNT(DISTINCT COALESCE(white_player_id, black_player_id)) as active_players
+                    FROM games
+                    WHERE date IS NOT NULL
+                    GROUP BY DATE_TRUNC('month', date)
+                    ORDER BY month DESC
+                    LIMIT 12
+                ),
+                growth_stats AS (
+                    SELECT
+                        COALESCE(AVG(games_added), 0) as avg_monthly_games,
+                        COALESCE(AVG(active_players), 0) as avg_monthly_players,
+                        COALESCE(MAX(games_added), 0) as peak_monthly_games,
+                        COALESCE(MAX(active_players), 0) as peak_monthly_players
+                    FROM monthly_stats
+                )
+                SELECT
+                    g.*,
+                    gr.avg_monthly_games,
+                    gr.avg_monthly_players,
+                    gr.peak_monthly_games,
+                    gr.peak_monthly_players
+                FROM game_stats g
+                CROSS JOIN growth_stats gr
+            """
             
-            # Get performance metrics
-            performance_metrics = await self._get_performance_metrics()
+            result = await self.db.execute(text(combined_query))
+            row = result.fetchone()
             
-            # Get growth trends
-            growth_trends = await self._get_growth_trends()
-            
-            # Get health metrics
-            health_metrics = await self._get_health_metrics()
+            # Get endpoint metrics from materialized view without refreshing
+            endpoint_metrics = await self._get_endpoint_metrics()
             
             return DatabaseMetricsResponse(
-                total_games=basic_stats.get("total_games", 0),
-                total_players=basic_stats.get("total_players", 0),
-                avg_moves_per_game=basic_stats.get("avg_moves_per_game", 0.0),
-                avg_game_duration=basic_stats.get("avg_game_duration", 0.0),
-                performance=performance_metrics,
-                growth_trends=growth_trends,
-                health_metrics=health_metrics
+                total_games=row.total_games,
+                total_players=row.total_players,
+                avg_moves_per_game=float(row.avg_moves_per_game or 0),
+                avg_game_duration=0.0,  # Not implemented
+                performance={
+                    "white_win_rate": float(row.white_win_rate or 0),
+                    "draw_rate": float(row.draw_rate or 0),
+                    "avg_game_length": float(row.avg_moves_per_game or 0)
+                },
+                growth_trends={
+                    "avg_monthly_games": float(row.avg_monthly_games),
+                    "avg_monthly_players": float(row.avg_monthly_players),
+                    "peak_monthly_games": int(row.peak_monthly_games),
+                    "peak_monthly_players": int(row.peak_monthly_players)
+                },
+                health_metrics={
+                    "null_moves_rate": float(row.null_moves_rate),
+                    "missing_player_rate": float(row.missing_player_rate),
+                    "missing_result_rate": float(row.missing_result_rate)
+                },
+                endpoint_metrics=endpoint_metrics
             )
-
+            
         except Exception as e:
-            logger.error(f"Error getting database metrics: {str(e)}")
+            logger.error(f"Error getting database metrics: {e}")
             raise
+
+    async def _get_endpoint_metrics(self) -> List[EndpointMetrics]:
+        """Get endpoint performance metrics from the materialized view."""
+        try:
+            # Try to refresh the materialized view if needed
+            try:
+                await self.db.execute(text("SELECT refresh_endpoint_performance_stats()"))
+                await self.db.commit()
+            except Exception as e:
+                logger.warning(f"Failed to refresh endpoint metrics view: {e}")
+                # Continue with potentially stale data
+            
+            # Query the materialized view
+            query = """
+                SELECT 
+                    endpoint,
+                    method,
+                    total_calls,
+                    successful_calls,
+                    error_count,
+                    avg_response_time_ms,
+                    p95_response_time_ms,
+                    p99_response_time_ms,
+                    max_response_time_ms,
+                    min_response_time_ms,
+                    success_rate,
+                    error_rate,
+                    avg_response_size_bytes,
+                    max_response_size_bytes,
+                    min_response_size_bytes,
+                    error_messages,
+                    (SELECT last_refresh FROM materialized_view_refresh_status WHERE view_name = 'endpoint_performance_stats') as last_refresh
+                FROM endpoint_performance_stats
+                ORDER BY total_calls DESC
+            """
+            
+            result = await self.db.execute(text(query))
+            rows = result.fetchall()
+            
+            metrics = []
+            for row in rows:
+                metrics.append({
+                    "endpoint": row.endpoint,
+                    "method": row.method,
+                    "total_calls": row.total_calls,
+                    "successful_calls": row.successful_calls,
+                    "error_count": row.error_count,
+                    "avg_response_time": float(row.avg_response_time_ms) if row.avg_response_time_ms is not None else 0.0,
+                    "p95_response_time": float(row.p95_response_time_ms) if row.p95_response_time_ms is not None else 0.0,
+                    "p99_response_time": float(row.p99_response_time_ms) if row.p99_response_time_ms is not None else 0.0,
+                    "max_response_time": float(row.max_response_time_ms) if row.max_response_time_ms is not None else 0.0,
+                    "min_response_time": float(row.min_response_time_ms) if row.min_response_time_ms is not None else 0.0,
+                    "success_rate": float(row.success_rate) if row.success_rate is not None else 0.0,
+                    "error_rate": float(row.error_rate) if row.error_rate is not None else 0.0,
+                    "avg_response_size": float(row.avg_response_size_bytes) if row.avg_response_size_bytes is not None else 0.0,
+                    "max_response_size": row.max_response_size_bytes if row.max_response_size_bytes is not None else 0,
+                    "min_response_size": row.min_response_size_bytes if row.min_response_size_bytes is not None else 0,
+                    "error_messages": row.error_messages or [],
+                    "last_refresh": row.last_refresh.isoformat() if row.last_refresh else None
+                })
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Error getting endpoint metrics: {e}")
+            return []
 
     async def _get_basic_stats(self) -> Dict[str, Any]:
         """Get basic database statistics."""

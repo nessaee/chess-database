@@ -17,10 +17,7 @@ from config import CACHE_CONTROL_HEADER, CACHE_CONTROL_VALUE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/games",
-    tags=["games"]
-)
+router = APIRouter()
 
 # Get game count
 @router.get("/count")
@@ -168,6 +165,33 @@ async def get_player_games(
     except Exception as e:
         logger.error(f"Error fetching games for player {player_name}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch player games")
+
+# Get recent games
+@router.get("/recent", response_model=List[GameResponse])
+async def get_recent_games(
+    response: Response,
+    limit: int = Query(default=10, gt=0, le=50),
+    move_notation: str = Query(default='uci', regex='^(uci|san)$'),
+    db: AsyncSession = Depends(get_session)
+) -> List[GameResponse]:
+    """
+    Get most recent chess games.
+    
+    Args:
+        limit: Maximum number of games to return (default: 10, max: 50)
+        move_notation: Move notation format ('uci' or 'san')
+    
+    Returns:
+        List of most recent games
+    """
+    try:
+        game_repository = GameRepository(db)
+        games = await game_repository.get_recent_games(limit)
+        response.headers[CACHE_CONTROL_HEADER] = CACHE_CONTROL_VALUE
+        return games
+    except Exception as e:
+        logger.error(f"Error fetching recent games: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch recent games")
 
 # Get game by ID - Keep this last to avoid route conflicts
 @router.get("/{game_id}", response_model=GameResponse)

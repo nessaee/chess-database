@@ -24,6 +24,13 @@ class PlayerRepository:
         self.date_handler = DateHandler()
         self.game_decoder = GameDecoder()
 
+    async def get_player(self, player_id: int) -> PlayerDB:
+        """Get a player by ID."""
+        query = select(PlayerDB).where(PlayerDB.id == player_id)
+        result = await self.db.execute(query)
+        player = result.scalar_one_or_none()
+        return player
+
     async def search_players(
         self,
         query: str,

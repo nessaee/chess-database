@@ -24,6 +24,12 @@ class GameRepository:
         self.decoder = GameDecoder()
         self.date_handler = DateHandler()
 
+    async def count_games(self) -> int:
+        """Get the total number of games in the database."""
+        query = select(func.count()).select_from(GameDB)
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
     async def get_games(
             self,
             player_name: Optional[str] = None,
@@ -321,3 +327,43 @@ class GameRepository:
         except Exception as e:
             logger.error(f"Error in get_game_stats: {str(e)}")
             raise DatabaseOperationError(f"Failed to fetch game stats: {str(e)}")
+
+    async def get_recent_games(self, limit: int = 10, move_notation: str = 'uci') -> List[GameResponse]:
+        """
+        Get most recent chess games.
+        
+        Args:
+            limit: Maximum number of games to return
+            move_notation: Move notation format ('uci' or 'san')
+            
+        Returns:
+            List[GameResponse]: List of most recent games
+            
+        Raises:
+            DatabaseOperationError: On database operation failures
+        """
+        try:
+            query = (
+                select(GameDB)
+                .options(
+                    joinedload(GameDB.white_player),
+                    joinedload(GameDB.black_player)
+                )
+                .order_by(GameDB.date.desc())
+                .limit(limit)
+            )
+            
+            result = await self.db.execute(query)
+            games = result.unique().scalars().all()
+            
+            # Convert games to responses using asyncio.gather
+            responses = []
+            for game in games:
+                response = await self.decoder.to_response(game, move_notation)
+                responses.append(response)
+            
+            return responses
+            
+        except Exception as e:
+            logger.error(f"Error fetching recent games: {str(e)}")
+            raise DatabaseOperationError(f"Failed to fetch recent games: {str(e)}")

@@ -1,23 +1,18 @@
 import { BaseService } from './BaseService';
-import { PlayerService } from './PlayerService';
-import { GameService } from './GameService';
+import { API_ENDPOINTS, API_CONFIG, CACHE_TIMEOUTS } from './constants';
 
 /**
- * Service for handling chess analysis API interactions.
- * Provides methods for fetching various types of analysis data.
+ * Service for handling chess analysis-related API interactions.
  */
 export class AnalysisService extends BaseService {
   constructor(baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000') {
     super(baseUrl);
     this.cache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-    this.playerService = new PlayerService(baseUrl);
-    this.gameService = new GameService(baseUrl);
   }
 
-  async getCachedData(key, fetchFn) {
+  async getCachedData(key, fetchFn, timeout = CACHE_TIMEOUTS.SHORT) {
     const cached = this.cache.get(key);
-    if (cached && (Date.now() - cached.timestamp < this.cacheTimeout)) {
+    if (cached && (Date.now() - cached.timestamp < timeout)) {
       return cached.data;
     }
 
@@ -35,6 +30,86 @@ export class AnalysisService extends BaseService {
       throw new Error(error.detail || `HTTP error! status: ${response.status}`);
     }
     return response.json();
+  }
+
+  /**
+   * Get analysis for a specific game position
+   * 
+   * @param {Object} options - Analysis options
+   * @param {string} options.fen - FEN string of the position
+   * @param {number} [options.depth=20] - Analysis depth
+   * @param {number} [options.multiPv=3] - Number of variations to analyze
+   * @returns {Promise<Object>} Position analysis
+   */
+  async analyzePosition({ fen, depth = 20, multiPv = 3 } = {}) {
+    if (!fen) {
+      throw new Error('FEN string is required');
+    }
+
+    return this.get(API_ENDPOINTS.ANALYSIS.POSITION, {
+      fen,
+      depth: Math.min(Math.max(1, depth), API_CONFIG.MAX_ANALYSIS_DEPTH),
+      multi_pv: Math.min(Math.max(1, multiPv), API_CONFIG.MAX_VARIATIONS)
+    });
+  }
+
+  /**
+   * Get engine evaluation for a game
+   * 
+   * @param {number} gameId - Game ID
+   * @param {Object} options - Analysis options
+   * @param {number} [options.depth=20] - Analysis depth
+   * @returns {Promise<Object>} Game analysis
+   */
+  async analyzeGame(gameId, { depth = 20 } = {}) {
+    const cacheKey = `game_analysis_${gameId}_${depth}`;
+    return this.getCachedData(
+      cacheKey,
+      () => this.get(API_ENDPOINTS.ANALYSIS.GAME(gameId), {
+        depth: Math.min(Math.max(1, depth), API_CONFIG.MAX_ANALYSIS_DEPTH)
+      }),
+      CACHE_TIMEOUTS.LONG
+    );
+  }
+
+  /**
+   * Get opening statistics for a position
+   * 
+   * @param {string} fen - FEN string of the position
+   * @returns {Promise<Object>} Opening statistics
+   */
+  async getOpeningStats(fen) {
+    if (!fen) {
+      throw new Error('FEN string is required');
+    }
+
+    const cacheKey = `opening_stats_${fen}`;
+    return this.getCachedData(
+      cacheKey,
+      () => this.get(API_ENDPOINTS.ANALYSIS.OPENING_STATS, { fen }),
+      CACHE_TIMEOUTS.MEDIUM
+    );
+  }
+
+  /**
+   * Get similar games for a position
+   * 
+   * @param {string} fen - FEN string of the position
+   * @param {Object} options - Query options
+   * @param {number} [options.limit=10] - Maximum number of games to return
+   * @param {number} [options.minElo=2000] - Minimum player Elo rating
+   * @returns {Promise<Array>} Similar games
+   */
+  async getSimilarGames(fen, { limit = 10, minElo = 2000 } = {}) {
+    if (!fen) {
+      throw new Error('FEN string is required');
+    }
+
+    return this.get(API_ENDPOINTS.ANALYSIS.SIMILAR_GAMES, {
+      fen,
+      limit: Math.min(Math.max(1, limit), API_CONFIG.MAX_LIMIT),
+      min_elo: Math.max(0, minElo)
+    });
   }
 
   /**
