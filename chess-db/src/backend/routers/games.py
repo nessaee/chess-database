@@ -13,7 +13,7 @@ from database import get_session
 from repository.game.repository import GameRepository
 from repository.models import GameResponse
 from repository.common.errors import DatabaseOperationError
-from config import CACHE_CONTROL_HEADER
+from config import CACHE_CONTROL_HEADER, CACHE_CONTROL_VALUE
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +123,51 @@ async def get_game_stats(
         return stats
     except DatabaseOperationError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Get player games
+@router.get("/player/{player_name}", response_model=List[GameResponse])
+async def get_player_games(
+    player_name: str,
+    response: Response,
+    start_date: Optional[str] = Query(None, regex="^\d{4}-\d{2}-\d{2}$"),
+    end_date: Optional[str] = Query(None, regex="^\d{4}-\d{2}-\d{2}$"),
+    only_dated: bool = Query(False),
+    limit: int = Query(default=50, gt=0, le=100),
+    move_notation: str = Query(default='uci', regex='^(uci|san)$'),
+    db: AsyncSession = Depends(get_session)
+) -> List[GameResponse]:
+    """
+    Get list of chess games for a specific player.
+    
+    Args:
+        player_name: Name of the player to fetch games for
+        start_date: Optional start date filter (YYYY-MM-DD)
+        end_date: Optional end date filter (YYYY-MM-DD)
+        only_dated: If true, only return games with dates
+        limit: Maximum number of games to return
+        move_notation: Move notation format ('uci' or 'san')
+        
+    Returns:
+        List of games matching the criteria
+    """
+    try:
+        game_repository = GameRepository(db)
+        games = await game_repository.get_player_games(
+            player_name=player_name,
+            start_date=start_date,
+            end_date=end_date,
+            only_dated=only_dated,
+            limit=limit,
+            move_notation=move_notation
+        )
+        response.headers[CACHE_CONTROL_HEADER] = CACHE_CONTROL_VALUE
+        return games
+    except DatabaseOperationError as e:
+        logger.error(f"Database error fetching games for player {player_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error fetching games for player {player_name}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch player games")
 
 # Get game by ID - Keep this last to avoid route conflicts
 @router.get("/{game_id}", response_model=GameResponse)

@@ -1,257 +1,416 @@
-import React from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { BookOpen, Sword, Clock, Target, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { AnalysisService } from '../../services/AnalysisService';
+import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, Line } from 'recharts';
 
-// Helper function to format win rate
-const formatWinRate = (rate) => `${rate.toFixed(1)}%`;
+const analysisService = new AnalysisService();
 
-// Helper to determine color based on win rate
+// Helper functions
 const getWinRateColor = (rate) => {
-  if (rate >= 60) return '#10B981';
-  if (rate >= 50) return '#6366F1';
-  return '#EC4899';
+  if (rate === null || rate === undefined) return 'text-gray-600';
+  if (rate >= 60) return 'text-emerald-600';
+  if (rate >= 50) return 'text-blue-600';
+  if (rate >= 40) return 'text-amber-600';
+  return 'text-red-600';
 };
 
-const OpeningSummaryCard = ({ title, value, subtitle, icon: Icon, trend }) => (
-  <div className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
-        {subtitle && (
-          <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
-        )}
-        {trend && (
-          <p className={`mt-1 text-sm ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}% vs prev period
+const formatWinRate = (rate) => {
+  if (rate === null || rate === undefined) return '0.0%';
+  return `${rate.toFixed(1)}%`;
+};
+
+const formatDrawRate = (rate) => {
+  if (rate === null || rate === undefined) return '0.0%';
+  return `${rate.toFixed(1)}%`;
+};
+
+const formatGameLength = (length) => {
+  if (length === null || length === undefined) return '0.0';
+  return Number(length).toFixed(1);
+};
+
+// Group data by year and month
+const groupDataByPeriod = (data, groupBy) => {
+  const groupedData = {};
+  
+  data.forEach((item, i) => {
+    const date = new Date(item.month);
+    const key = groupBy === 'yearly' 
+      ? date.getFullYear().toString()
+      : `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+    
+    if (!groupedData[key]) {
+      groupedData[key] = {
+        month: key,
+        games: 0,
+        winRate: 0,
+        count: 0
+      };
+    }
+    
+    groupedData[key].games += item.games;
+    groupedData[key].winRate += item.winRate * item.games; // Weight by number of games
+    groupedData[key].count += item.games;
+  });
+
+  // Calculate weighted averages for win rates
+  Object.values(groupedData).forEach(group => {
+    group.winRate = group.count > 0 ? group.winRate / group.count : 0;
+  });
+
+  return Object.values(groupedData);
+};
+
+/**
+ * Analysis Insight component for displaying individual analysis insights
+ * @param {Object} props - Component properties
+ * @param {Object} props.insight - Analysis insight data
+ */
+const AnalysisInsight = ({ insight }) => {
+  const winRateColor = getWinRateColor(insight.win_rate);
+  const drawRate = insight.total_games > 0 ? (insight.draw_count / insight.total_games * 100) : 0;
+  const drawRateColor = drawRate >= 30 ? 'text-blue-600' : 'text-gray-600';
+  
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <h3 className="font-medium text-gray-900">{insight.opening_name}</h3>
+          <p className="text-gray-600 text-sm mt-1">
+            {insight.message}
           </p>
-        )}
+        </div>
+        <div className="text-right">
+          <span className={`font-semibold ${winRateColor} block`}>
+            {formatWinRate(insight.win_rate)} wins
+          </span>
+          <span className={`text-sm ${drawRateColor} block`}>
+            {formatDrawRate(drawRate)} draws
+          </span>
+        </div>
       </div>
-      {Icon && <Icon className="h-5 w-5 text-gray-400" />}
+      <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span className="text-gray-500">Games as White:</span>{' '}
+          <span className="font-medium">{insight.games_as_white}</span>
+          <span className="text-xs text-gray-500 ml-1">
+            ({((insight.games_as_white / insight.total_games) * 100).toFixed(1)}%)
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-500">Games as Black:</span>{' '}
+          <span className="font-medium">{insight.games_as_black}</span>
+          <span className="text-xs text-gray-500 ml-1">
+            ({((insight.games_as_black / insight.total_games) * 100).toFixed(1)}%)
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-500">Total Games:</span>{' '}
+          <span className="font-medium">{insight.total_games}</span>
+        </div>
+        <div>
+          <span className="text-gray-500">Avg Length:</span>{' '}
+          <span className="font-medium">{formatGameLength(insight.avg_game_length)} moves</span>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const OpeningPerformanceTable = ({ openings }) => (
-  <div className="bg-white rounded-lg shadow overflow-hidden">
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Opening
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Games
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Win Rate
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              W/D/L
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Color Split
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {openings.map((opening, idx) => (
-            <tr key={opening.eco} className={idx % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {opening.name}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {opening.eco}
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {opening.games_played}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                    <div 
-                      className="rounded-full h-2" 
-                      style={{ 
-                        width: `${opening.win_rate}%`,
-                        backgroundColor: getWinRateColor(opening.win_rate)
-                      }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium" style={{ color: getWinRateColor(opening.win_rate) }}>
-                    {formatWinRate(opening.win_rate)}
-                  </span>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <span className="text-green-600">{opening.wins}</span>
-                <span className="text-gray-500">/{opening.draws}/</span>
-                <span className="text-red-600">{opening.losses}</span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex items-center space-x-1">
-                  <div className="w-4 h-4 bg-white border rounded-full" title="White"></div>
-                  <span>{opening.white_games}</span>
-                  <div className="w-4 h-4 bg-gray-800 rounded-full" title="Black"></div>
-                  <span>{opening.black_games}</span>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
+/**
+ * Opening row component for displaying individual opening statistics
+ * @param {Object} props - Component properties
+ * @param {Object} props.opening - Opening data
+ * @param {string} props.timeGrouping - Time grouping option ('monthly' or 'yearly')
+ */
+const OpeningRow = ({ opening, timeGrouping }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const winRateColor = getWinRateColor(opening.win_rate);
+  const drawRate = opening.total_games > 0 ? (opening.draws / opening.total_games * 100) : 0;
+  const drawRateColor = drawRate >= 30 ? 'text-blue-600' : 'text-gray-600';
 
-const OpeningWinRateChart = ({ openings }) => {
-  const data = openings
-    .sort((a, b) => b.win_rate - a.win_rate)
-    .slice(0, 10)
-    .map(opening => ({
-      name: opening.eco,
-      winRate: opening.win_rate,
-      games: opening.games_played,
-      openingName: opening.name
+  const renderTrendGraph = () => {
+    if (!opening.trend_data || !opening.trend_data.months || !opening.trend_data.games || !opening.trend_data.win_rates) return null;
+
+    // Create initial monthly data
+    const monthlyData = opening.trend_data.months.map((month, i) => ({
+      month,
+      games: opening.trend_data.games[i],
+      winRate: opening.trend_data.win_rates[i] // win_rates are already percentages
     }));
 
-  return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Top Opening Win Rates</h3>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="name" 
+    // Group data based on selected time period
+    const chartData = groupDataByPeriod(monthlyData, timeGrouping);
+    const maxGames = Math.max(...chartData.map(d => d.games));
+    const height = 400;
+    const padding = { top: 20, right: 40, bottom: 60, left: 60 };
+
+    return (
+      <div className="trend-graph" style={{ marginTop: '1rem' }}>
+        <ResponsiveContainer width="100%" height={height}>
+          <ComposedChart
+            data={chartData}
+            margin={padding}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="month"
+              angle={-90}
+              textAnchor="end"
+              height={60}
+              interval={0}
               tick={{ fontSize: 12 }}
-              tickFormatter={(value) => value}
+              tickMargin={10}
             />
-            <YAxis domain={[0, 100]} />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const data = payload[0].payload;
-                return (
-                  <div className="bg-white p-3 border rounded shadow-lg">
-                    <p className="font-medium">{data.openingName}</p>
-                    <p className="text-sm font-medium">{data.name}</p>
-                    <p className="text-sm">Win Rate: {data.winRate.toFixed(1)}%</p>
-                    <p className="text-sm">Games: {data.games}</p>
-                  </div>
-                );
-              }}
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              domain={[0, maxGames * 1.1]}
+              label={{ value: 'Games Played', angle: -90, position: 'insideLeft' }}
+              tickFormatter={(value) => Math.round(value)}
             />
-            <Bar dataKey="winRate" fill="#6366F1">
-              {data.map((entry, index) => (
-                <Cell key={index} fill={getWinRateColor(entry.winRate)} />
-              ))}
-            </Bar>
-          </BarChart>
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[0, 100]}
+              label={{ value: 'Win Rate (%)', angle: 90, position: 'insideRight' }}
+              tickFormatter={(value) => Math.round(value)}
+            />
+            <Tooltip />
+            <Legend />
+            <Bar
+              yAxisId="left"
+              dataKey="games"
+              fill="#8884d8"
+              name="Games Played"
+              barSize={timeGrouping === 'yearly' ? 40 : 20}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="winRate"
+              stroke="#82ca9d"
+              name="Win Rate"
+              dot={{ r: 4 }}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
+    );
+  };
+
+  const StatCard = ({ label, value, color = 'text-gray-900', subValue = null }) => (
+    <div className="bg-gray-50 rounded-lg p-3 flex flex-col">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className={`text-lg font-semibold ${color}`}>{value}</span>
+      {subValue && <span className="text-xs text-gray-500 mt-1">{subValue}</span>}
     </div>
   );
-};
-
-const ColorDistributionChart = ({ openings }) => {
-  const totalWhite = openings.reduce((sum, o) => sum + o.white_games, 0);
-  const totalBlack = openings.reduce((sum, o) => sum + o.black_games, 0);
-  const data = [
-    { name: 'White', value: totalWhite, color: '#F3F4F6' },
-    { name: 'Black', value: totalBlack, color: '#1F2937' }
-  ];
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Color Distribution</h3>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={index} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const data = payload[0].payload;
-                return (
-                  <div className="bg-white p-2 border rounded shadow-lg">
-                    <p className="font-medium">{data.name}</p>
-                    <p className="text-sm">Games: {data.value}</p>
-                    <p className="text-sm">
-                      {((data.value / (totalWhite + totalBlack)) * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                );
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+    <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 mb-4 hover:border-blue-200 transition-colors">
+      <div 
+        className="flex flex-col space-y-4"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center space-x-2">
+              <h3 className="font-medium text-gray-900 text-lg">
+                {opening.opening_name}
+              </h3>
+              <span className="text-gray-500 text-sm px-2 py-0.5 bg-gray-100 rounded-full">
+                {opening.eco_code}
+              </span>
+            </div>
+          </div>
+          <button className="ml-4 text-gray-400 hover:text-gray-600 transition-colors">
+            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatCard
+            label="Total Games"
+            value={opening.total_games}
+            subValue=""
+          />
+          <StatCard
+            label="Games as White"
+            value={opening.games_as_white}
+            subValue={`${((opening.games_as_white / opening.total_games) * 100).toFixed(1)}% of games`}
+          />
+          <StatCard
+            label="Games as Black"
+            value={opening.games_as_black}
+            subValue={`${((opening.games_as_black / opening.total_games) * 100).toFixed(1)}% of games`}
+          />
+          <StatCard
+            label="Win Rate"
+            value={`${opening.win_rate.toFixed(1)}%`}
+            color={winRateColor}
+            subValue={`${drawRate.toFixed(1)}% draws`}
+          />
+          <StatCard
+            label="Avg Game Length"
+            value={`${formatGameLength(opening.avg_game_length)}`}
+            subValue=""
+          />
+        </div>
       </div>
+
+      {isExpanded && (
+        <div className="mt-6 border-t pt-4">
+          {opening.complexity_stats?.complexity_score && (
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Complexity Score</span>
+                <span className="font-medium text-gray-900">
+                  {Number(opening.complexity_stats.complexity_score).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+          {renderTrendGraph()}
+        </div>
+      )}
     </div>
   );
 };
 
-const OpeningAnalysisView = ({ data }) => {
-  if (!data?.openings) return null;
+/**
+ * Opening Analysis View component for displaying comprehensive opening statistics
+ * @param {Object} props - Component properties
+ * @param {Object} props.data - Opening analysis data
+ * @param {string} props.playerName - Player name
+ */
+const OpeningAnalysisView = ({ data, playerName }) => {
+  const [timeGrouping, setTimeGrouping] = useState('monthly');
+  const [sortBy, setSortBy] = useState('total_games');
+  const [sortDirection, setSortDirection] = useState('desc');
 
-  const { openings, total_games, total_wins, total_draws, total_losses } = data;
-  const overallWinRate = (total_wins / total_games) * 100;
+  if (!data) return null;
 
-  const bestOpening = openings.reduce((best, current) => 
-    current.win_rate > (best?.win_rate || 0) ? current : best
-  , null);
+  const getSortValue = (opening, field) => {
+    switch (field) {
+      case 'games_as_white':
+        return opening.games_as_white || 0;
+      case 'games_as_black':
+        return opening.games_as_black || 0;
+      case 'win_rate':
+        return opening.win_rate || 0;
+      case 'avg_game_length':
+        return opening.avg_game_length || 0;
+      case 'total_games':
+        return opening.total_games || 0;
+      default:
+        return 0;
+    }
+  };
+
+  const sortedAnalysis = [...data.analysis].sort((a, b) => {
+    const aValue = getSortValue(a, sortBy);
+    const bValue = getSortValue(b, sortBy);
+    return sortDirection === 'desc' ? bValue - aValue : aValue - bValue;
+  });
+
+  const handleSortChange = (field) => {
+    if (sortBy === field) {
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortButton = ({ field, label }) => (
+    <button
+      onClick={() => handleSortChange(field)}
+      className={`px-3 py-1 text-sm rounded-md border ${
+        sortBy === field
+          ? 'bg-blue-50 border-blue-200 text-blue-700'
+          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+      }`}
+    >
+      {label}
+      {sortBy === field && (
+        <span className="ml-1">
+          {sortDirection === 'desc' ? '↓' : '↑'}
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <OpeningSummaryCard
-          title="Total Openings"
-          value={openings.length}
-          subtitle={`${total_games} games analyzed`}
-          icon={BookOpen}
-        />
-        <OpeningSummaryCard
-          title="Most Successful"
-          value={bestOpening?.name || 'N/A'}
-          subtitle={bestOpening ? `${formatWinRate(bestOpening.win_rate)} Win Rate` : 'No data'}
-          icon={Sword}
-        />
-        <OpeningSummaryCard
-          title="Overall Performance"
-          value={formatWinRate(overallWinRate)}
-          subtitle={`${total_wins}W/${total_draws}D/${total_losses}L`}
-          icon={TrendingUp}
-        />
+      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="flex flex-col space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Opening Analysis for {playerName}
+            </h2>
+            <select
+              value={timeGrouping}
+              onChange={(e) => setTimeGrouping(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="monthly">Monthly View</option>
+              <option value="yearly">Yearly View</option>
+            </select>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm text-gray-600">Sort by:</span>
+            <SortButton field="total_games" label="Total Games" />
+            <SortButton field="games_as_white" label="Games as White" />
+            <SortButton field="games_as_black" label="Games as Black" />
+            <SortButton field="win_rate" label="Win Rate" />
+            <SortButton field="avg_game_length" label="Avg Game Length" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-4">
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{data.total_openings}</div>
+            <div className="text-sm text-gray-600">Openings Played</div>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{data.total_games}</div>
+            <div className="text-sm text-gray-600">Total Games</div>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">
+              {formatWinRate(data.total_wins / data.total_games * 100)}
+            </div>
+            <div className="text-sm text-gray-600">Overall Win Rate</div>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-900">{formatGameLength(data.avg_game_length)}</div>
+            <div className="text-sm text-gray-600">Avg Game Length</div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Win Rate Chart */}
-        <OpeningWinRateChart openings={openings} />
-        {/* Color Distribution */}
-        <ColorDistributionChart openings={openings} />
-      </div>
+      {data.insights && data.insights.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Key Insights</h3>
+          {data.insights.map((insight, index) => (
+            <AnalysisInsight key={index} insight={insight} />
+          ))}
+        </div>
+      )}
 
-      {/* Detailed Performance Table */}
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Opening Performance Details</h3>
-        <OpeningPerformanceTable openings={openings} />
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">Opening Statistics</h3>
+        <div className="space-y-2">
+          {sortedAnalysis.map((opening, index) => (
+            <OpeningRow 
+              key={index} 
+              opening={opening} 
+              timeGrouping={timeGrouping}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

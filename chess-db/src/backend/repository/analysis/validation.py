@@ -1,7 +1,12 @@
-# repository/analysis/validation.py
 from datetime import datetime
-from typing import Any, List, Dict, Optional
-from pydantic import BaseModel, Field, validator
+from typing import Any, List, Dict, Optional, Union
+from pydantic import BaseModel, Field, validator, ConfigDict, ValidationError as PydanticValidationError
+from dataclasses import asdict, is_dataclass
+from ..models.opening import AnalysisInsight as OpeningAnalysisInsight
+
+class ValidationError(Exception):
+    """Custom validation error."""
+    pass
 
 class AnalysisValidator:
     """Validator for analysis data and parameters."""
@@ -51,3 +56,57 @@ class AnalysisValidator:
             eco[1:].isdigit()
         ):
             raise ValidationError("Invalid ECO code format")
+
+    def _convert_to_dict(self, obj: Any) -> Dict[str, Any]:
+        """Convert various types to dictionary."""
+        try:
+            if isinstance(obj, dict):
+                return obj
+            if isinstance(obj, (OpeningAnalysisInsight, BaseModel)):
+                return obj.model_dump()
+            if is_dataclass(obj):
+                return asdict(obj)
+            if hasattr(obj, '__dict__'):
+                return obj.__dict__
+            raise ValidationError(f"Cannot convert {type(obj)} to dictionary")
+        except Exception as e:
+            raise ValidationError(f"Error converting object to dictionary: {str(e)}")
+
+    def validate_analysis_insight(self, insight: Any) -> Dict[str, Any]:
+        """Validate and convert analysis insight to dictionary."""
+        try:
+            if isinstance(insight, OpeningAnalysisInsight):
+                return insight.model_dump()
+                
+            # Convert to dictionary if needed
+            insight_dict = self._convert_to_dict(insight)
+            
+            # Validate using the OpeningAnalysisInsight model
+            try:
+                validated = OpeningAnalysisInsight(**insight_dict)
+                return validated.model_dump()
+            except PydanticValidationError as e:
+                raise ValidationError(f"Invalid analysis insight data: {str(e)}")
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            raise ValidationError(f"Error validating analysis insight: {str(e)}")
+
+    def validate_analysis_response(self, response: Any) -> Dict[str, Any]:
+        """Validate complete analysis response."""
+        try:
+            if not isinstance(response, dict):
+                response = self._convert_to_dict(response)
+                
+            if 'analysis' in response:
+                response['analysis'] = [
+                    self.validate_analysis_insight(insight)
+                    for insight in response['analysis']
+                ]
+                
+            return response
+        except ValidationError:
+            raise
+        except Exception as e:
+            raise ValidationError(f"Error validating analysis response: {str(e)}")

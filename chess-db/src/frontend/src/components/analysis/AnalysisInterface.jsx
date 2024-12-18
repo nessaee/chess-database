@@ -1,46 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, Search } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search } from 'lucide-react';
+import { AnalysisService } from '../../services/AnalysisService';
 
-export const AnalysisInterface = ({
+const analysisService = new AnalysisService();
+
+/**
+ * Analysis Interface Component
+ * Provides controls for filtering and analyzing chess data
+ */
+export function AnalysisInterface({
+  timeRange,
+  dateRange,
+  minGames,
   onTimeRangeChange,
   onDateRangeChange,
-  onPlayerSelect,
-  timeRange,
-  dateRange
-}) => {
-  const [playerSearch, setPlayerSearch] = useState('');
+  onPlayerSearch,
+  onMinGamesChange,
+  playerName
+}) {
+  const [searchTerm, setSearchTerm] = useState(playerName || '');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const suggestionsRef = useRef(null);
-
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (playerSearch.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(
-          `${API_URL}/players/search?q=${encodeURIComponent(playerSearch)}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setSuggestions(data);
-        }
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [playerSearch]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -53,47 +36,101 @@ export const AnalysisInterface = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handlePlayerSelect = (player) => {
-    setPlayerSearch(player.name);
-    onPlayerSelect(player.id);
+  useEffect(() => {
+    const searchPlayers = async () => {
+      if (!searchTerm.trim()) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const results = await analysisService.searchPlayers(searchTerm);
+        setSuggestions(results);
+      } catch (error) {
+        console.error('Error searching players:', error);
+        setSuggestions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(searchPlayers, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (selectedPlayer) {
+      onPlayerSearch(selectedPlayer);
+    } else if (searchTerm.trim()) {
+      // If no player is selected but there's a search term,
+      // use the first suggestion if available
+      const firstMatch = suggestions[0];
+      if (firstMatch) {
+        setSelectedPlayer(firstMatch);
+        onPlayerSearch(firstMatch);
+      }
+    }
     setShowSuggestions(false);
   };
 
+  const handleSuggestionClick = (player) => {
+    setSearchTerm(player.name);
+    setSelectedPlayer(player);
+    onPlayerSearch(player);
+    setShowSuggestions(false);
+  };
+
+  // Update search term when playerName prop changes
+  useEffect(() => {
+    if (playerName && playerName !== searchTerm) {
+      setSearchTerm(playerName);
+    }
+  }, [playerName]);
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Player Search */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Player Search
-          </label>
+        <div className="md:col-span-2">
           <div className="relative" ref={suggestionsRef}>
-            <div className="relative">
-              <input
-                type="text"
-                value={playerSearch}
-                onChange={(e) => {
-                  setPlayerSearch(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Enter player name..."
-                className="w-full px-3 py-2 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              {isLoading && (
-                <div className="absolute right-3 top-2.5">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                </div>
-              )}
-            </div>
-            
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSelectedPlayer(null);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Search player (e.g., Nakamura,Hi)"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                {isLoading && (
+                  <div className="absolute right-3 top-2.5">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Search
+              </button>
+            </form>
+
+            {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
                 {suggestions.map((player) => (
                   <button
                     key={player.id}
-                    onClick={() => handlePlayerSelect(player)}
+                    onClick={() => handleSuggestionClick(player)}
                     className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
                   >
                     <span className="font-medium">{player.name}</span>
@@ -109,42 +146,56 @@ export const AnalysisInterface = ({
           </div>
         </div>
 
-        {/* Time Range Selector */}
+        {/* Time Range */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Time Range
-          </label>
           <select
             value={timeRange}
             onChange={(e) => onTimeRangeChange(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
+            <option value="all">All Time</option>
           </select>
         </div>
 
-        {/* Date Range */}
+        {/* Minimum Games */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Date Range
-          </label>
-          <div className="flex space-x-2">
+          <div className="flex items-center gap-2">
             <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => onDateRangeChange('start', e.target.value)}
-              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="number"
+              value={minGames}
+              onChange={(e) => onMinGamesChange(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              min="1"
+              placeholder="Min games"
             />
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => onDateRangeChange('end', e.target.value)}
-              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <span className="text-sm text-gray-500 whitespace-nowrap">min games</span>
           </div>
+        </div>
+      </div>
+
+      {/* Date Range */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <input
+            type="date"
+            value={dateRange?.start || ''}
+            onChange={(e) => onDateRangeChange('start', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <input
+            type="date"
+            value={dateRange?.end || ''}
+            onChange={(e) => onDateRangeChange('end', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
       </div>
     </div>
   );
-};
+}
+
+export default AnalysisInterface;

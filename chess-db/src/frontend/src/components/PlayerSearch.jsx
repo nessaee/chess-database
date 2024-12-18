@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { debounce } from 'lodash';
 import { Search } from 'lucide-react';
+import { PlayerService } from '../services/PlayerService';
+
+const playerService = new PlayerService();
 
 const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
   const [inputValue, setInputValue] = useState(initialValue);
@@ -34,109 +37,74 @@ const PlayerSearch = ({ onPlayerSelect, initialValue = '' }) => {
 
       try {
         setLoading(true);
-        const response = await fetch(
-          `/api/players/search?q=${encodeURIComponent(searchTerm)}&limit=10`
-        );
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error occurred' }));
-          throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setSuggestions(data);  
+        const results = await playerService.searchPlayers(searchTerm);
+        setSuggestions(results);
         setOpen(true);
+        setError(null);
       } catch (error) {
         console.error('Error fetching player suggestions:', error);
-        setError(error.message || 'Failed to fetch suggestions');
+        setError('Failed to fetch suggestions');
+        setSuggestions([]);
       } finally {
         setLoading(false);
       }
     }, 300)
   ).current;
 
-  useEffect(() => {
-    return () => {
-      fetchSuggestions.cancel();
-    };
-  }, [fetchSuggestions]);
-
   const handleInputChange = (e) => {
     const value = e.target.value;
     setInputValue(value);
-    if (value) {
-      fetchSuggestions(value);
-    } else {
-      setSuggestions([]);
-      setOpen(false);
-      setError(null);
-    }
+    fetchSuggestions(value);
   };
 
-  const handleSelect = (player) => {
+  const handleSuggestionClick = (player) => {
     setInputValue(player.name);
-    onPlayerSelect(player.name);  
+    onPlayerSelect(player);
     setOpen(false);
   };
 
   return (
-    <div ref={wrapperRef} className="relative">
+    <div className="relative" ref={wrapperRef}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <input
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => inputValue.length >= 2 && setOpen(true)}
-          placeholder="Search by player name"
-          className="pl-10 p-2 w-full border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          onFocus={() => setOpen(true)}
+          placeholder="Enter player name (e.g., Nakamura,Hi)"
+          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
         {loading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-500 border-t-transparent"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
           </div>
         )}
       </div>
-      
-      {open && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((player, index) => (
-            <li
-              key={player.id}
-              onClick={() => handleSelect(player)}
-              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                index < suggestions.length - 1 ? 'border-b' : ''
-              }`}
-            >
-              <div className="font-medium">{player.name}</div>
-              {player.rating && (
-                <div className="text-sm text-gray-500">Rating: {player.rating}</div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      
-      {open && suggestions.length === 0 && !loading && inputValue.length >= 2 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg p-4 text-center text-gray-500">
-          {error ? error : 'No players found'}
-        </div>
-      )}
-      
-      {inputValue.length < 2 && (
-        <p className="mt-1 text-sm text-gray-500">
-          Enter at least 2 characters
-        </p>
-      )}
-      
-      {loading && (
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
-        </div>
-      )}
-      
+
       {error && (
-        <div className="text-red-500 text-sm mt-1">{error}</div>
+        <div className="absolute w-full mt-1 p-2 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+          {suggestions.map((player) => (
+            <button
+              key={player.id}
+              onClick={() => handleSuggestionClick(player)}
+              className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+            >
+              <span className="font-medium">{player.name}</span>
+              {player.elo && (
+                <span className="text-sm text-gray-500 ml-2">
+                  ({player.elo})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

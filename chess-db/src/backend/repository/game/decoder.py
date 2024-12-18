@@ -159,3 +159,54 @@ class GameDecoder:
         Currently returns None as opening book integration is not implemented.
         """
         return None
+
+    def to_response(self, game_db, move_notation='uci') -> dict:
+        """
+        Convert database game model to response format.
+        
+        Args:
+            game_db: GameDB model instance
+            move_notation: Move notation format ('uci' or 'san')
+            
+        Returns:
+            Dictionary with game data in response format
+        """
+        try:
+            moves = self.decode_moves(game_db.moves) if game_db.moves else []
+            
+            # Convert moves to requested notation
+            if move_notation == 'san' and moves:
+                board = chess.Board()
+                san_moves = []
+                for move in moves:
+                    try:
+                        chess_move = chess.Move.from_uci(move)
+                        san_moves.append(board.san(chess_move))
+                        board.push(chess_move)
+                    except (chess.InvalidMoveError, ValueError) as e:
+                        logger.error(f"Error converting move {move} to SAN: {e}")
+                        return None
+                moves = san_moves
+
+            return {
+                "id": game_db.id,
+                "white_player_id": game_db.white_player_id,
+                "black_player_id": game_db.black_player_id,
+                "white_player": {
+                    "id": game_db.white_player.id,
+                    "name": game_db.white_player.name,
+                    "rating": game_db.white_elo
+                } if game_db.white_player else None,
+                "black_player": {
+                    "id": game_db.black_player.id,
+                    "name": game_db.black_player.name,
+                    "rating": game_db.black_elo
+                } if game_db.black_player else None,
+                "result": game_db.result,
+                "date": game_db.date.isoformat() if game_db.date else None,
+                "moves": " ".join(moves) if moves else "",
+                "eco": game_db.eco,
+            }
+        except Exception as e:
+            logger.error(f"Error converting game to response: {e}")
+            return None

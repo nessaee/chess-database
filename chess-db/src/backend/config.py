@@ -20,7 +20,8 @@ DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{D
 
 # Cache Configuration
 CACHE_TTL = 300  # 5 minutes
-CACHE_CONTROL_HEADER = "public, max-age=300"  # 5 minutes
+CACHE_CONTROL_HEADER = "Cache-Control"  # Header name
+CACHE_CONTROL_VALUE = "public, max-age=300"  # 5 minutes
 
 # Logging Configuration
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -6,15 +6,20 @@ Models are organized by domain (game, player, analysis) and include both SQLAlch
 and Pydantic response models.
 """
 
-from .base import *
+# Import base components first
+from .base import Base, Column, Integer, String, Text, DateTime, Date, ForeignKey, relationship, BaseModel, ConfigDict
+
+# Import domain models
 from .game import GameDB, GameResponse
 from .player import PlayerDB, PlayerResponse, PlayerSearchResponse, PlayerPerformanceResponse, DetailedPerformanceResponse
 from .analysis import (
     MoveCountAnalysis,
-    OpeningStatsResponse,
     OpeningAnalysis,
-    OpeningAnalysisResponse,
     DatabaseMetricsResponse
+)
+from .opening import (
+    OpeningStats,
+    OpeningAnalysisResponse
 )
 
 __all__ = [
@@ -29,8 +34,9 @@ __all__ = [
     'PlayerDB', 'PlayerResponse', 'PlayerSearchResponse',
     'PlayerPerformanceResponse', 'DetailedPerformanceResponse',
     
+    # Opening models
+    'OpeningStats', 'OpeningAnalysisResponse', 'TrendData',
+    
     # Analysis models
-    'MoveCountAnalysis', 'OpeningStatsResponse',
-    'OpeningAnalysis', 'OpeningAnalysisResponse',
-    'DatabaseMetricsResponse'
+    'MoveCountAnalysis', 'DatabaseMetricsResponse'
 ]

@@ -24,6 +24,7 @@ from routers.games import router as game_router
 from routers.players import router as player_router
 from routers.analysis import router as analysis_router
 from config import CORS_ORIGINS, API_VERSION
+from utils.latency_monitor import LatencyMonitor
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +54,14 @@ app = FastAPI(
     version=API_VERSION,
     lifespan=lifespan
 )
+
+# Initialize latency monitor
+latency_monitor = LatencyMonitor()
+
+# Add middleware
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    return await latency_monitor.log_request_latency(request, call_next)
 
 # Configure CORS
 app.add_middleware(

@@ -55,7 +55,7 @@ async def get_player(
         raise HTTPException(status_code=404, detail="Player not found")
     return player
 
-@router.get("/{player_id}/performance", response_model=List[PlayerPerformanceResponse])
+@router.get("/{player_id}/performance", response_model=List[DetailedPerformanceResponse])
 async def get_player_performance(
     player_id: int,
     time_period: Optional[str] = None,

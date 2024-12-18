@@ -6,10 +6,11 @@ Handles game analysis, statistics, and database metrics.
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import logging
 
 from database import get_session
+from repository import PlayerRepository, AnalysisRepository
 from repository.models import (
     MoveCountAnalysis,
     PlayerPerformanceResponse,
@@ -18,8 +19,10 @@ from repository.models import (
     PlayerSearchResponse,
     DetailedPerformanceResponse
 )
-from repository.analysis import AnalysisRepository, AnalysisCacheManager
+from repository.analysis import AnalysisCacheManager
 from config import CACHE_CONTROL_HEADER
+from repository.models.opening import PopularOpeningStats
+from repository import opening_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -45,30 +48,22 @@ async def get_database_metrics(
     response: Response,
     db: AsyncSession = Depends(get_session)
 ):
-
     """Get comprehensive database metrics and trends."""
     try:
         repo = AnalysisRepository(db)
-        stats = await repo.get_database_metrics()
-        
-        if not stats:
-            raise HTTPException(status_code=404, detail="No database metrics available")
-            
-        response.headers["Cache-Control"] = "public, max-age=1800"  # Cache for 30 minutes
-        return stats
-        
+        metrics = await repo.get_database_metrics()
+        response.headers[CACHE_CONTROL_HEADER] = "max-age=3600"  # Cache for 1 hour
+        return metrics
     except Exception as e:
         logger.error(f"Error getting database metrics: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.get(
-    "/players/{player_id}/openings",
-    response_model=OpeningAnalysisResponse
-)
-async def get_player_opening_analysis(
+@router.get("/players/{player_id}/openings", response_model=OpeningAnalysisResponse)
+async def get_player_openings(
     response: Response,
-    player_id: int = Path(..., description="The ID of the player to analyze", ge=1),
-    min_games: int = Query(5, ge=1, description="Minimum games threshold"),
+    player_id: str = Path(..., description="The ID of the player to analyze"),
+    min_games: int = Query(default=5, ge=1, description="Minimum number of games for opening analysis"),
+    limit: Optional[int] = Query(default=None, ge=1, le=100, description="Maximum number of openings to return"),
     start_date: Optional[str] = Query(
         None,
         description="Start date for analysis (YYYY-MM-DD)",
@@ -80,180 +75,145 @@ async def get_player_opening_analysis(
         regex="^\d{4}-\d{2}-\d{2}$"
     ),
     db: AsyncSession = Depends(get_session)
-):
+) -> OpeningAnalysisResponse:
     """
-    Get detailed analysis of a player's performance with different chess openings.
-    Includes statistics such as win rates, game counts, and average game lengths.
+    Get detailed analysis of a player's opening performance.
+    
+    Parameters:
+    - player_id: Player's username or ID
+    - min_games: Minimum number of games required for an opening to be included (default: 5)
+    - limit: Maximum number of openings to return (optional, max 100)
+    - start_date: Optional start date for filtering games (YYYY-MM-DD)
+    - end_date: Optional end date for filtering games (YYYY-MM-DD)
+    
+    Returns:
+    - Detailed analysis of the player's opening performance including:
+        - List of all openings played with stats
+        - Overall analysis insights
+        - Most successful and most played openings
     """
     try:
-        # Validate dates if provided
-        if start_date and end_date and start_date > end_date:
+        # Parse dates if provided
+        parsed_start_date = None
+        parsed_end_date = None
+        
+        if start_date:
+            try:
+                parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid start_date format")
+        
+        if end_date:
+            try:
+                parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid end_date format")
+        
+        # Validate date range
+        if parsed_start_date and parsed_end_date and parsed_start_date > parsed_end_date:
             raise HTTPException(
                 status_code=400,
                 detail="start_date cannot be later than end_date"
             )
-
-        repo = AnalysisRepository(db)
-        analysis = await repo.get_player_opening_analysis(
-            player_id=player_id,
+        
+        # Convert player_id to integer
+        try:
+            player_id_int = int(player_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="player_id must be an integer")
+        
+        # Get opening analysis
+        analysis = await opening_repository.get_player_openings(
+            db=db,
+            player_id=player_id_int,
+            start_date=parsed_start_date,
+            end_date=parsed_end_date,
             min_games=min_games,
-            start_date=start_date,
-            end_date=end_date
+            limit=limit
         )
         
-        if not analysis:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No opening analysis available for player {player_id}"
-            )
-            
-        response.headers[CACHE_CONTROL_HEADER] = "max-age=3600"  # Cache for 1 hour
+        # Set cache header (cache for 5 minutes)
+        response.headers["Cache-Control"] = "public, max-age=300"
+        
         return analysis
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error analyzing player openings: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Error getting player opening analysis: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get player opening analysis"
+        )
 
-@router.get(
-    "/players/{player_id}/performance",
-    response_model=DetailedPerformanceResponse
-)
-async def get_player_performance(
+@router.get("/popular-openings", response_model=List[PopularOpeningStats])
+async def get_popular_openings(
     response: Response,
-    player_id: int = Path(..., description="ID of the player to analyze", ge=1),
-    time_range: str = Query(
-        "monthly",
-        description="Time grouping (daily, weekly, monthly, yearly)"
-    ),
     start_date: Optional[str] = Query(
         None,
-        description="Start date (YYYY-MM-DD)",
+        description="Start date for analysis (YYYY-MM-DD)",
         regex="^\d{4}-\d{2}-\d{2}$"
     ),
     end_date: Optional[str] = Query(
         None,
-        description="End date (YYYY-MM-DD)",
+        description="End date for analysis (YYYY-MM-DD)",
         regex="^\d{4}-\d{2}-\d{2}$"
     ),
+    min_games: int = Query(default=100, ge=1, description="Minimum number of games for an opening to be included"),
+    limit: int = Query(default=10, ge=1, le=50, description="Maximum number of openings to return"),
     db: AsyncSession = Depends(get_session)
-):
-    """Get detailed performance metrics for a player over time."""
+) -> List[PopularOpeningStats]:
+    """
+    Get statistics for popular chess openings.
+    
+    Parameters:
+    - start_date: Optional start date for filtering games (YYYY-MM-DD)
+    - end_date: Optional end date for filtering games (YYYY-MM-DD)
+    - min_games: Minimum number of games required for an opening to be included (default: 100)
+    - limit: Maximum number of openings to return (default: 10, max: 50)
+    
+    Returns:
+    - List of popular openings with their statistics
+    """
     try:
-        valid_ranges = ["daily", "weekly", "monthly", "yearly"]
-        if time_range not in valid_ranges:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid time_range. Must be one of: {', '.join(valid_ranges)}"
-            )
-
-        # Validate dates if provided
-        if start_date and end_date and start_date > end_date:
+        # Parse dates if provided
+        parsed_start_date = None
+        parsed_end_date = None
+        
+        if start_date:
+            try:
+                parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid start_date format")
+        
+        if end_date:
+            try:
+                parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid end_date format")
+        
+        # Validate date range
+        if parsed_start_date and parsed_end_date and parsed_start_date > parsed_end_date:
             raise HTTPException(
                 status_code=400,
                 detail="start_date cannot be later than end_date"
             )
-
-        repo = AnalysisRepository(db)
-        performance = await repo.get_player_performance(
-            player_id=player_id,
-            time_range=time_range,
-            start_date=start_date,
-            end_date=end_date
-        )
         
-        if not performance:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No performance data available for player {player_id}"
-            )
-            
-        response.headers[CACHE_CONTROL_HEADER] = "max-age=1800"  # Cache for 30 minutes
-        return performance
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error getting player performance: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/player/{player_id}/performance")
-async def get_player_performance(
-    player_id: int,
-    time_range: str = Query("monthly", description="Time range for analysis (daily, weekly, monthly, yearly)"),
-    db: AsyncSession = Depends(get_session)
-):
-    """Get performance statistics for a player over time."""
-    try:
-        repo = AnalysisRepository(db)
-        stats = await repo.get_player_performance(player_id, time_range)
-        if not stats:
-            raise HTTPException(status_code=404, detail="No performance data found")
-        return stats
-    except Exception as e:
-        logger.error(f"Error getting player performance: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get player performance")
-
-@router.get("/player/{player_id}/openings")
-async def get_player_openings(
-    player_id: int,
-    min_games: int = Query(5, description="Minimum number of games for opening analysis"),
-    db: AsyncSession = Depends(get_session)
-):
-    """Get opening statistics for a player."""
-    try:
-        repo = AnalysisRepository(db)
-        stats = await repo.get_player_openings(player_id, min_games)
-        if not stats:
-            raise HTTPException(status_code=404, detail="No opening data found")
-        return stats
-    except Exception as e:
-        logger.error(f"Error getting player openings: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get player openings")
-
-@router.get("/players/search", response_model=List[PlayerSearchResponse], include_in_schema=True)
-async def search_players(
-    query: str = Query(
-        None,
-        alias="q",
-        min_length=2,
-        max_length=50,
-        description="Search query for player name"
-    ),
-    limit: int = Query(
-        10,
-        ge=1,
-        le=50,
-        description="Maximum number of results to return"
-    ),
-    db: AsyncSession = Depends(get_session)
-):
-    """
-    Search for players by partial name match.
-    Results are ordered by relevance and include recent ELO ratings if available.
-    """
-    try:
-        if not query:
-            return []
-
-        repo = AnalysisRepository(db)
-        results = await repo.search_players(
-            query=query.strip(),
+        # Get popular openings
+        openings = await opening_repository.get_popular_openings(
+            db=db,
+            start_date=parsed_start_date,
+            end_date=parsed_end_date,
+            min_games=min_games,
             limit=limit
         )
-
-        return [
-            PlayerSearchResponse(
-                id=result["id"],
-                name=result["name"],
-                elo=result.get("elo")
-            )
-            for result in results
-        ]
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        
+        # Set cache header (cache for 5 minutes)
+        response.headers["Cache-Control"] = "public, max-age=300"
+        
+        return openings
+        
     except Exception as e:
-        logger.error(f"Player search error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to search players")
+        logger.error(f"Error getting popular openings: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get popular openings"
+        )

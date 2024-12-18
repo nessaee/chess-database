@@ -5,7 +5,7 @@ from .base import (
     ForeignKey, relationship, BaseModel, ConfigDict
 )
 from .player import PlayerResponse, PlayerDB
-from typing import Optional, List
+from typing import Optional
 from datetime import date
 
 class GameDB(Base):
@@ -34,39 +34,24 @@ class GameDB(Base):
         lazy="joined"
     )
 
+class PlayerInGame(BaseModel):
+    """Player information within a game response"""
+    id: int
+    name: str
+    rating: Optional[int] = None
+
 class GameResponse(BaseModel):
     """API response model for chess games"""
     id: int
     white_player_id: int
     black_player_id: int
-    white_player_name: Optional[str] = None
-    black_player_name: Optional[str] = None
+    white_player: Optional[PlayerInGame] = None
+    black_player: Optional[PlayerInGame] = None
     date: Optional[date]
     result: str
     eco: Optional[str] = None
     moves: str  # Space-separated moves in requested notation (UCI or SAN)
-    white_elo: Optional[int] = None
-    black_elo: Optional[int] = None
     num_moves: Optional[int] = None  # Total number of moves
     opening_name: Optional[str] = None  # ECO opening name if available
-    
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={
-            "example": {
-                "id": 1,
-                "white_player_id": 1,
-                "black_player_id": 2,
-                "white_player_name": "Player 1",
-                "black_player_name": "Player 2",
-                "date": "2023-01-01",
-                "result": "1-0",
-                "eco": "B20",
-                "moves": "e2e4 e7e5 g1f3",  # UCI format by default
-                "white_elo": 2000,
-                "black_elo": 1900,
-                "num_moves": 3,
-                "opening_name": "Sicilian Defense"
-            }
-        }
-    )
+
+    model_config = ConfigDict(from_attributes=True)
