@@ -122,14 +122,13 @@ restore_backup() {
 run_migrations() {
     log "Running database migrations..."
     
-    for migration in "$MIGRATIONS_DIR"/*.sql; do
-        if [ -f "$migration" ]; then
-            log "Applying migration: $(basename "$migration")"
-            docker compose exec -T db psql -U "${POSTGRES_USER}" "${POSTGRES_DB}" < "$migration"
-        fi
-    done
-    
-    success "Migrations completed"
+    if [ -d "$MIGRATIONS_DIR" ]; then
+        log "Applying migrations from ${MIGRATIONS_DIR}..."
+        docker compose exec web alembic upgrade head
+        success "Migrations completed successfully"
+    else
+        warning "No migrations directory found at ${MIGRATIONS_DIR}"
+    fi
 }
 
 # Function to verify setup

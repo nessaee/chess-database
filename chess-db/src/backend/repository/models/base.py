@@ -9,7 +9,7 @@ This module provides:
 
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Date,
-    ForeignKey, Boolean, Float, Enum, JSON
+    ForeignKey, Boolean, Float, Enum, JSON, SmallInteger
 )
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.ext.declarative import declared_attr
@@ -26,7 +26,7 @@ __all__ = [
     # SQLAlchemy components
     'Base', 'Column', 'Integer', 'String', 'Text',
     'DateTime', 'Date', 'ForeignKey', 'relationship',
-    'Boolean', 'Float', 'Enum', 'JSON',
+    'Boolean', 'Float', 'Enum', 'JSON', 'SmallInteger',
     
     # Pydantic components
     'BaseModel', 'ConfigDict', 'Field',

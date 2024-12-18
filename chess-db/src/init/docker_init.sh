@@ -12,6 +12,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_DB="${PROJECT_ROOT}/.env.db"
 ENV_BACKEND="${PROJECT_ROOT}/.env.backend"
 COMPOSE_FILE="${PROJECT_ROOT}/docker-compose.yml"
+MIGRATIONS_DIR="${PROJECT_ROOT}/backend/migrations"
 
 # Check if environment files exist
 if [ ! -f "$ENV_DB" ] || [ ! -f "$ENV_BACKEND" ]; then
@@ -146,10 +147,13 @@ restore_database() {
 run_migrations() {
     log "Running database migrations..."
     
-    cd "$PROJECT_ROOT"
-    docker compose exec web python migrations/run_migrations.py
-    
-    success "Migrations completed successfully"
+    if [ -d "$MIGRATIONS_DIR" ]; then
+        log "Applying migrations from ${MIGRATIONS_DIR}..."
+        docker compose exec web alembic upgrade head
+        success "Migrations completed successfully"
+    else
+        warning "No migrations directory found at ${MIGRATIONS_DIR}"
+    fi
 }
 
 # Function to verify setup

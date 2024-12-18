@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
 
-from ..models.game import GameDB, GameResponse
+from ..models.game import GameDB, GameResponse, encode_result, decode_result
 from ..models.player import PlayerDB
 from .decoder import GameDecoder
 from ..common.validation import DateHandler
@@ -104,6 +104,9 @@ class GameRepository:
             processed_games = []
             for game in games:
                 try:
+                    # Create base response from DB model
+                    game_response = GameResponse.from_db(game)
+                    
                     # Decode binary moves to UCI
                     uci_moves = self.decoder.decode_moves(game.moves)
                     
@@ -111,27 +114,15 @@ class GameRepository:
                     if move_notation == 'san':
                         san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)
                         moves_str = ' '.join(san_moves)
+                        game_response.opening_name = opening_name
                     else:
                         moves_str = ' '.join(uci_moves)
-                        opening_name = None
                         num_moves = len(uci_moves)
                     
-                    # Create response with player names and moves
-                    game_response = GameResponse(
-                        id=game.id,
-                        white_player_id=game.white_player_id,
-                        black_player_id=game.black_player_id,
-                        white_player_name=game.white_player.name if game.white_player else None,
-                        black_player_name=game.black_player.name if game.black_player else None,
-                        date=game.date,
-                        result=game.result,
-                        eco=game.eco,
-                        moves=moves_str,
-                        white_elo=game.white_elo,
-                        black_elo=game.black_elo,
-                        opening_name=opening_name,
-                        num_moves=num_moves
-                    )
+                    # Update moves-related fields
+                    game_response.moves = moves_str
+                    game_response.num_moves = num_moves
+                    
                     processed_games.append(game_response)
                 except Exception as e:
                     logger.error(f"Error processing game {game.id}: {str(e)}")
@@ -170,6 +161,9 @@ class GameRepository:
             if not game:
                 return None
 
+            # Create base response from DB model
+            game_response = GameResponse.from_db(game)
+            
             # Decode moves
             uci_moves = self.decoder.decode_moves(game.moves)
             
@@ -177,26 +171,16 @@ class GameRepository:
             if move_notation == 'san':
                 san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)
                 moves_str = ' '.join(san_moves)
+                game_response.opening_name = opening_name
             else:
                 moves_str = ' '.join(uci_moves)
-                opening_name = None
                 num_moves = len(uci_moves)
-
-            return GameResponse(
-                id=game.id,
-                white_player_id=game.white_player_id,
-                black_player_id=game.black_player_id,
-                white_player_name=game.white_player.name if game.white_player else None,
-                black_player_name=game.black_player.name if game.black_player else None,
-                date=game.date,
-                result=game.result,
-                eco=game.eco,
-                moves=moves_str,
-                white_elo=game.white_elo,
-                black_elo=game.black_elo,
-                opening_name=opening_name,
-                num_moves=num_moves
-            )
+            
+            # Update moves-related fields
+            game_response.moves = moves_str
+            game_response.num_moves = num_moves
+            
+            return game_response
 
         except Exception as e:
             logger.error(f"Error in get_game_by_id: {str(e)}")
@@ -263,9 +247,18 @@ class GameRepository:
             # Convert to response models, filtering out None responses
             responses = []
             for game in games:
-                response = self.decoder.to_response(game, move_notation=move_notation)
-                if response is not None:
-                    responses.append(response)
+                game_response = GameResponse.from_db(game)
+                uci_moves = self.decoder.decode_moves(game.moves)
+                if move_notation == 'san':
+                    san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)
+                    moves_str = ' '.join(san_moves)
+                    game_response.opening_name = opening_name
+                else:
+                    moves_str = ' '.join(uci_moves)
+                    num_moves = len(uci_moves)
+                game_response.moves = moves_str
+                game_response.num_moves = num_moves
+                responses.append(game_response)
 
             return responses
 
@@ -359,11 +352,52 @@ class GameRepository:
             # Convert games to responses using asyncio.gather
             responses = []
             for game in games:
-                response = await self.decoder.to_response(game, move_notation)
-                responses.append(response)
+                game_response = GameResponse.from_db(game)
+                uci_moves = self.decoder.decode_moves(game.moves)
+                if move_notation == 'san':
+                    san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)
+                    moves_str = ' '.join(san_moves)
+                    game_response.opening_name = opening_name
+                else:
+                    moves_str = ' '.join(uci_moves)
+                    num_moves = len(uci_moves)
+                game_response.moves = moves_str
+                game_response.num_moves = num_moves
+                responses.append(game_response)
             
             return responses
             
         except Exception as e:
             logger.error(f"Error fetching recent games: {str(e)}")
             raise DatabaseOperationError(f"Failed to fetch recent games: {str(e)}")
+
+    async def create_game(self, game_data: dict) -> GameDB:
+        """Create a new game in the database."""
+        async with self.db as session:
+            # Convert result string to bits
+            if 'result' in game_data:
+                game_data['result'] = encode_result(game_data['result'])
+            
+            game = GameDB(**game_data)
+            session.add(game)
+            await session.commit()
+            await session.refresh(game)
+            return game
+
+    async def update_game(self, game_id: int, game_data: dict) -> Optional[GameDB]:
+        """Update an existing game in the database."""
+        async with self.db as session:
+            game = await session.get(GameDB, game_id)
+            if not game:
+                return None
+
+            # Convert result string to bits if present
+            if 'result' in game_data:
+                game_data['result'] = encode_result(game_data['result'])
+
+            for key, value in game_data.items():
+                setattr(game, key, value)
+
+            await session.commit()
+            await session.refresh(game)
+            return game
