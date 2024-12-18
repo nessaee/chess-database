@@ -8,7 +8,7 @@ load_dotenv()
 
 # API Configuration
 API_VERSION = "1.0.0"
-
+API_BASE_URL = "http://localhost:5000"
 # Database Configuration
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASS = os.getenv("DB_PASS", "chesspass")

@@ -21,7 +21,9 @@ logger.info(f"Creating database engine with URL: {DATABASE_URL}")
 engine = create_async_engine(
     DATABASE_URL,
     echo=True,  # Enable SQL logging
-    poolclass=NullPool  # Disable connection pooling in development
+    poolclass=NullPool,  # Disable connection pooling in development
+    pool_pre_ping=True,  # Enable connection health checks
+    pool_recycle=3600,  # Recycle connections after 1 hour
 )
 
 async_session = async_sessionmaker(
@@ -37,7 +39,7 @@ async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created")
-
+        
 async def dispose_tables():
     """Clean up database connections"""
     await engine.dispose()
@@ -76,11 +78,12 @@ async def get_session() -> AsyncSession:
         raise
 
 async def check_connection() -> bool:
-    """Check database connectivity"""
+    """Check if database connection is working"""
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
+            logger.info("Database connection successful")
             return True
     except Exception as e:
-        logger.error(f"Database connection error: {e}")
+        logger.error(f"Database connection failed: {str(e)}")
         return False

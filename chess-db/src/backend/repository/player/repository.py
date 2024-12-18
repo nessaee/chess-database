@@ -24,6 +24,13 @@ class PlayerRepository:
         self.date_handler = DateHandler()
         self.game_decoder = GameDecoder()
 
+    async def get_player(self, player_id: int) -> PlayerDB:
+        """Get a player by ID."""
+        query = select(PlayerDB).where(PlayerDB.id == player_id)
+        result = await self.db.execute(query)
+        player = result.scalar_one_or_none()
+        return player
+
     async def search_players(
         self,
         query: str,
@@ -176,10 +183,12 @@ class PlayerRepository:
                         AVG(num_moves) as avg_moves,
                         SUM(CASE WHEN player_color = 'white' THEN 1 ELSE 0 END) as white_games,
                         SUM(CASE WHEN player_color = 'black' THEN 1 ELSE 0 END) as black_games,
-                        COUNT(DISTINCT eco) as unique_openings,
+                        COUNT(DISTINCT o.name) as unique_openings,
                         AVG(player_elo) as avg_elo,
                         MAX(player_elo) - MIN(player_elo) as elo_change
-                    FROM player_games
+                    FROM player_games pg
+                    JOIN game_opening_matches gom ON pg.id = gom.game_id
+                    JOIN openings o ON gom.opening_id = o.id
                     GROUP BY period
                     ORDER BY period
                 )

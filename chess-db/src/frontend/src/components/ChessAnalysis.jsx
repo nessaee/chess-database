@@ -8,200 +8,207 @@ import PlayerAnalysisView from './analysis/PlayerAnalysisView';
 import PlayerSearch from './PlayerSearch';
 import { AnalysisService } from '../services/AnalysisService';
 import { PlayerService } from '../services/PlayerService';
+import { databaseMetricsService } from '../services/DatabaseMetricsService';
 import { classNames } from '../utils/classNames';
+
+// Initialize services
+const analysisService = new AnalysisService();
+const playerService = new PlayerService();
 
 /**
  * Enhanced Chess Analysis Component providing comprehensive chess game analysis
- * including general statistics, openings, player performance, and database metrics.
- * 
- * @component
- * @returns {JSX.Element} Rendered analysis interface
+ * including general statistics, opening analysis, and player performance metrics.
  */
-
-export default function ChessAnalysis() {
-  // View state management
-  const [activeView, setActiveView] = useState('general');
-  
-  // Data state management
-  const [moveData, setMoveData] = useState([]);
-  const [performanceData, setPerformanceData] = useState(null);
-  const [openingAnalysis, setOpeningAnalysis] = useState(null);
-  const [dbMetrics, setDbMetrics] = useState(null);
-  const [playerName, setPlayerName] = useState('');
-  const [playerId, setPlayerId] = useState(null);
-  
-  // UI state management
-  const [isLoading, setIsLoading] = useState(true);
+const ChessAnalysis = () => {
+  // State management
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('monthly');
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [minGames, setMinGames] = useState(20);
+  const [analysisData, setAnalysisData] = useState({
+    moveDistribution: [],
+    playerStats: null,
+    openingStats: null,
+    databaseMetrics: null
+  });
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [timeRange, setTimeRange] = useState('all');
+  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
+  const [minGames, setMinGames] = useState(5);
 
-  // Tab categories
-  const categories = [
-    { name: 'General', key: 'general' },
-    { name: 'Player Analysis', key: 'player' },
-    { name: 'Opening Explorer', key: 'openings' },
-    { name: 'Database Stats', key: 'database' }
-  ];
-
-  // Initialize services
-  const analysisService = new AnalysisService();
-  const playerService = new PlayerService();
-
-  // Data fetching effects
+  // Fetch initial data
   useEffect(() => {
-    const fetchAnalysisData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const [moveDistribution, metrics] = await Promise.all([
-          analysisService.getMoveCountDistribution(),
-          analysisService.getDatabaseMetrics()
-        ]);
-        setMoveData(moveDistribution);
-        setDbMetrics(metrics);
-      } catch (error) {
-        console.error('Error fetching analysis data:', error);
-        setError(error.message || 'Failed to fetch analysis data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAnalysisData();
+    fetchDatabaseMetrics();
   }, []);
 
-  useEffect(() => {
-    const fetchPlayerData = async () => {
-      if (!playerId) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const [performance, openings] = await Promise.all([
-          playerService.getPlayerPerformance(playerId, {
-            timeRange,
-            startDate: dateRange?.start,
-            endDate: dateRange?.end,
-          }),
-          analysisService.getPlayerOpeningAnalysis(playerId, {
-            minGames,
-            startDate: dateRange?.start,
-            endDate: dateRange?.end
-          })
-        ]);
-        
-        setPerformanceData(performance);
-        setOpeningAnalysis(openings);
-      } catch (error) {
-        console.error('Error fetching player data:', error);
-        setError(error.message || 'Failed to fetch player data');
-        setPerformanceData(null);
-        setOpeningAnalysis(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPlayerData();
-  }, [playerId, timeRange, dateRange, minGames]);
-
-  const handleDateChange = (type, value) => {
-    setDateRange(prev => ({
-      ...prev,
-      [type]: value
-    }));
-  };
-
-  const renderTabContent = (category) => {
-    switch (category) {
-      case 'general':
-        return (
-          <div className="space-y-8">
-            <MoveDistributionChart data={moveData} />
-            <DatabaseMetricsView data={dbMetrics} />
-          </div>
-        );
-      case 'player':
-        return playerId ? (
-          <PlayerAnalysisView
-            performanceData={performanceData}
-            openingAnalysis={openingAnalysis}
-            databaseMetrics={dbMetrics}
-          />
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            Please select a player to view analysis
-          </div>
-        );
-      case 'openings':
-        return (
-          <div className="text-center py-8 text-gray-500">
-            Opening explorer coming soon
-          </div>
-        );
-      case 'database':
-        return (
-          <DatabaseMetricsView data={dbMetrics} showDetails={true} />
-        );
-      default:
-        return null;
+  // Fetch database metrics
+  const fetchDatabaseMetrics = async () => {
+    try {
+      const metrics = await databaseMetricsService.getDatabaseMetrics();
+      setAnalysisData(prev => ({ ...prev, databaseMetrics: metrics }));
+    } catch (err) {
+      console.error('Error fetching database metrics:', err);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <AnalysisInterface
-        timeRange={timeRange}
-        dateRange={dateRange}
-        minGames={minGames}
-        onTimeRangeChange={setTimeRange}
-        onDateRangeChange={setDateRange}
-        onMinGamesChange={setMinGames}
-        onPlayerSearch={(player) => {
-          setPlayerName(player.name);
-          setPlayerId(player.id);
-        }}
-        playerName={playerName}
-      />
+  // Handle player selection
+  const handlePlayerSelect = async (player) => {
+    setSelectedPlayer(player);
+    setLoading(true);
+    setError(null);
 
-      <Tab.Group onChange={(index) => setActiveView(categories[index].key)}>
-        <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
-          {categories.map((category) => (
+    try {
+      // Fetch player statistics
+      const [performanceData, openingStats] = await Promise.all([
+        playerService.getPlayerPerformance(player.id, { timePeriod: timeRange }),
+        playerService.getPlayerOpenings(player.id, {
+          minGames,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        })
+      ]);
+
+      setAnalysisData(prev => ({
+        ...prev,
+        playerStats: performanceData,
+        openingStats
+      }));
+    } catch (err) {
+      setError(err.message || 'Error fetching player analysis');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle time range change
+  const handleTimeRangeChange = async (range) => {
+    setTimeRange(range);
+    if (selectedPlayer) {
+      setLoading(true);
+      try {
+        const performanceData = await playerService.getPlayerPerformance(selectedPlayer.id, { timePeriod: range });
+        setAnalysisData(prev => ({ ...prev, playerStats: performanceData }));
+      } catch (err) {
+        setError(err.message || 'Error updating time range');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Handle date range change
+  const handleDateRangeChange = async (range) => {
+    setDateRange(range);
+    if (selectedPlayer) {
+      setLoading(true);
+      try {
+        const openingStats = await playerService.getPlayerOpenings(selectedPlayer.id, {
+          minGames,
+          startDate: range.startDate,
+          endDate: range.endDate
+        });
+        setAnalysisData(prev => ({ ...prev, openingStats }));
+      } catch (err) {
+        setError(err.message || 'Error updating date range');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Handle minimum games change
+  const handleMinGamesChange = async (games) => {
+    setMinGames(games);
+    if (selectedPlayer) {
+      setLoading(true);
+      try {
+        const openingStats = await playerService.getPlayerOpenings(selectedPlayer.id, {
+          minGames: games,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        });
+        setAnalysisData(prev => ({ ...prev, openingStats }));
+      } catch (err) {
+        setError(err.message || 'Error updating minimum games');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const tabs = [
+    { name: 'Database Overview', content: <DatabaseMetricsView metrics={analysisData.databaseMetrics} /> },
+    {
+      name: 'Player Analysis',
+      content: (
+        <div className="space-y-4">
+          <PlayerSearch onPlayerSelect={handlePlayerSelect} />
+          {error && <ErrorState message={error} />}
+          {loading ? (
+            <LoadingState />
+          ) : (
+            selectedPlayer && (
+              <PlayerAnalysisView
+                performanceData={analysisData.playerStats}
+                openingAnalysis={analysisData.openingStats}
+                databaseMetrics={analysisData.databaseMetrics}
+              />
+            )
+          )}
+        </div>
+      )
+    },
+    {
+      name: 'Analysis Interface',
+      content: (
+        <AnalysisInterface
+          timeRange={timeRange}
+          dateRange={dateRange}
+          minGames={minGames}
+          onTimeRangeChange={handleTimeRangeChange}
+          onDateRangeChange={handleDateRangeChange}
+          onMinGamesChange={handleMinGamesChange}
+        />
+      )
+    }
+  ];
+
+  return (
+    <div className="w-full px-2 py-16 sm:px-0">
+      <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
+        <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+          {tabs.map((tab) => (
             <Tab
-              key={category.key}
+              key={tab.name}
               className={({ selected }) =>
                 classNames(
                   'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
                   'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
                   selected
                     ? 'bg-white shadow text-blue-700'
-                    : 'text-gray-600 hover:bg-white/[0.12] hover:text-blue-600'
+                    : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'
                 )
               }
             >
-              {category.name}
+              {tab.name}
             </Tab>
           ))}
         </Tab.List>
         <Tab.Panels className="mt-2">
-          {categories.map((category) => (
+          {tabs.map((tab, idx) => (
             <Tab.Panel
-              key={category.key}
+              key={idx}
               className={classNames(
                 'rounded-xl bg-white p-3',
                 'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
               )}
             >
-              {isLoading && <LoadingState />}
-              {error && <ErrorState message={error} />}
-              {!isLoading && !error && renderTabContent(category.key)}
+              {tab.content}
             </Tab.Panel>
           ))}
         </Tab.Panels>
       </Tab.Group>
     </div>
   );
-}
+};
+
+export default ChessAnalysis;
