@@ -98,7 +98,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
             data={data}
-            margin={{ top: 20, right: 140, bottom: 100, left: 80 }}
+            margin={{ top: 20, right: 80, bottom: 80, left: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
@@ -118,15 +118,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 dy: 20
               }}
             />
-            {/* Games Played Axis (Hidden) */}
-            <YAxis 
-              yAxisId="games"
-              orientation="left"
-              domain={[0, maxGames + gamesPadding]}
-              axisLine={false}
-              tick={false}
-              width={30}
-            />
+            
             {/* Percentage Axis */}
             <YAxis 
               yAxisId="percentage" 
@@ -136,7 +128,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 value: 'Percentage', 
                 angle: -90, 
                 position: 'insideLeft',
-                offset: 0
+                offset: 15
               }}
               tickFormatter={(value) => value}
               tick={{
@@ -149,6 +141,15 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 strokeWidth: 1
               }}
             />
+            {/* Games Played Axis (Hidden) */}
+            <YAxis 
+              yAxisId="games"
+              orientation="left"
+              domain={[0, maxGames + gamesPadding]}
+              axisLine={false}
+              tick={false}
+              width={30}
+            />
             {/* Rating Axis */}
             <YAxis 
               yAxisId="right" 
@@ -158,7 +159,7 @@ const PerformanceTrendChart = ({ data, timeScale, setTimeScale }) => {
                 value: 'Rating', 
                 angle: 90, 
                 position: 'insideRight',
-                offset: 25
+                offset: 15
               }}
               tickFormatter={(value) => Math.round(value)}
               tick={{
@@ -266,7 +267,7 @@ export default function PlayerMetricsView({ performanceData = [] }) {
       winRate: weightedWinRate,
       peakRating: maxRating,
       avgGameLength: Math.round(avgGameLength),
-      openingDiversity: avgOpeningDiversity * 100
+      openingDiversity: avgOpeningDiversity * 100 // Convert to percentage
     };
   }, [performanceData]);
 
@@ -293,7 +294,7 @@ export default function PlayerMetricsView({ performanceData = [] }) {
         yearlyData[year].games_played += item.games_played;
         yearlyData[year].rating += item.avg_elo;
         yearlyData[year].win_rate += item.win_rate;
-        yearlyData[year].opening_diversity += item.opening_diversity;
+        yearlyData[year].opening_diversity += item.opening_diversity * 100; // Convert to percentage
         yearlyData[year].count += 1;
       });
 
@@ -306,7 +307,8 @@ export default function PlayerMetricsView({ performanceData = [] }) {
     }
     return performanceData.map(item => ({
       ...item,
-      rating: item.avg_elo
+      rating: item.avg_elo,
+      opening_diversity: item.opening_diversity * 100 // Convert to percentage
     }));
   };
 

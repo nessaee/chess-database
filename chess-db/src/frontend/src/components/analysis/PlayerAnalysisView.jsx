@@ -31,17 +31,6 @@ export default function PlayerAnalysisView({ performanceData, openingAnalysis, d
           </div>
         </div>
 
-        {/* Database Metrics */}
-        {databaseMetrics && (
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Database Overview</h2>
-            </div>
-            <div className="p-4">
-              <DatabaseMetricsView data={databaseMetrics} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -39,7 +39,6 @@ export default function ChessAnalysis() {
 
   // Tab categories
   const categories = [
-    { name: 'General', key: 'general' },
     { name: 'Player Analysis', key: 'player' },
     { name: 'Opening Explorer', key: 'openings' },
     { name: 'Database Stats', key: 'database' }
@@ -117,13 +116,6 @@ export default function ChessAnalysis() {
 
   const renderTabContent = (category) => {
     switch (category) {
-      case 'general':
-        return (
-          <div className="space-y-8">
-            <MoveDistributionChart data={moveData} />
-            <DatabaseMetricsView data={dbMetrics} />
-          </div>
-        );
       case 'player':
         return playerId ? (
           <PlayerAnalysisView
@@ -144,7 +136,10 @@ export default function ChessAnalysis() {
         );
       case 'database':
         return (
-          <DatabaseMetricsView data={dbMetrics} showDetails={true} />
+          <div className="space-y-8">
+            <MoveDistributionChart data={moveData} />
+            <DatabaseMetricsView data={dbMetrics} showDetails={true} />
+          </div>   
         );
       default:
         return null;
@@ -153,20 +148,6 @@ export default function ChessAnalysis() {
 
   return (
     <div className="space-y-6">
-      <AnalysisInterface
-        timeRange={timeRange}
-        dateRange={dateRange}
-        minGames={minGames}
-        onTimeRangeChange={setTimeRange}
-        onDateRangeChange={setDateRange}
-        onMinGamesChange={setMinGames}
-        onPlayerSearch={(player) => {
-          setPlayerName(player.name);
-          setPlayerId(player.id);
-        }}
-        playerName={playerName}
-      />
-
       <Tab.Group onChange={(index) => setActiveView(categories[index].key)}>
         <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
           {categories.map((category) => (
@@ -195,6 +176,21 @@ export default function ChessAnalysis() {
                 'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
               )}
             >
+              {category.key === 'player' && (
+                <AnalysisInterface
+                  timeRange={timeRange}
+                  dateRange={dateRange}
+                  minGames={minGames}
+                  onTimeRangeChange={setTimeRange}
+                  onDateRangeChange={setDateRange}
+                  onMinGamesChange={setMinGames}
+                  onPlayerSearch={(player) => {
+                    setPlayerName(player.name);
+                    setPlayerId(player.id);
+                  }}
+                  playerName={playerName}
+                />
+              )}
               {isLoading && <LoadingState />}
               {error && <ErrorState message={error} />}
               {!isLoading && !error && renderTabContent(category.key)}

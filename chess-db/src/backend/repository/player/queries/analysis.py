@@ -116,8 +116,8 @@ GET_PLAYING_STYLE = """
             STDDEV(move_count) as game_length_variance,
             
             -- Opening preferences
-            mode() WITHIN GROUP (ORDER BY eco) as favorite_opening,
-            COUNT(DISTINCT eco) as opening_diversity,
+            mode() WITHIN GROUP (ORDER BY o.name) as favorite_opening,
+            COUNT(DISTINCT o.name) as opening_diversity,
             
             -- Color performance
             ROUND(
@@ -145,7 +145,9 @@ GET_PLAYING_STYLE = """
                 2
             ) as decisive_game_percentage
             
-        FROM player_games
+        FROM player_games pg
+        JOIN game_opening_matches gom ON pg.id = gom.game_id
+        JOIN openings o ON gom.opening_id = o.id
     ),
     position_stats AS (
         -- Analyze typical positions and piece placement
