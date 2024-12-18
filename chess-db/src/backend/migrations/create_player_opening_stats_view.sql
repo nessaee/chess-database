@@ -1,3 +1,6 @@
+-- Drop existing view and indexes if they exist
+DROP MATERIALIZED VIEW IF EXISTS player_opening_stats CASCADE;
+
 -- Create materialized view for player opening statistics
 CREATE MATERIALIZED VIEW player_opening_stats AS
 WITH base_stats AS (
@@ -58,7 +61,7 @@ SELECT
     bs.player_name,
     bs.opening_id,
     COUNT(*) as total_games,
-    ROUND(SUM(bs.points)::numeric, 0) as wins,
+    SUM(CASE WHEN bs.points = 1 THEN 1 ELSE 0 END) as wins,
     SUM(CASE WHEN bs.points = 0.5 THEN 1 ELSE 0 END) as draws,
     SUM(CASE WHEN bs.points = 0 THEN 1 ELSE 0 END) as losses,
     ROUND(AVG(bs.game_move_length)::numeric, 2) as avg_game_length,
