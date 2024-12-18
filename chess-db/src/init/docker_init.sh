@@ -6,10 +6,24 @@
 # Exit on any error
 set -e
 
-# Configuration variables
+# Source environment files
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ENV_DB="${PROJECT_ROOT}/.env.db"
+ENV_BACKEND="${PROJECT_ROOT}/.env.backend"
 COMPOSE_FILE="${PROJECT_ROOT}/docker-compose.yml"
+
+# Check if environment files exist
+if [ ! -f "$ENV_DB" ] || [ ! -f "$ENV_BACKEND" ]; then
+    error "Environment files not found. Please ensure .env.db and .env.backend exist"
+    exit 1
+fi
+
+# Load environment variables
+set -a  # automatically export all variables
+source "$ENV_DB"
+source "$ENV_BACKEND"
+set +a
 
 # Color coding for output
 RED='\033[0;31m'
@@ -55,7 +69,11 @@ check_prerequisites() {
 
 # Function to check ports
 check_ports() {
-    local ports=(5173 5000 5433)
+    local web_port="${WEB_PORT:-5173}"
+    local api_port="${API_PORT:-5000}"
+    local db_port="${POSTGRES_PORT:-5433}"
+    local ports=($web_port $api_port $db_port)
+    
     for port in "${ports[@]}"; do
         if lsof -i:$port > /dev/null 2>&1; then
             error "Port $port is already in use"
@@ -92,11 +110,11 @@ start_containers() {
 wait_for_db() {
     log "Waiting for database to be ready..."
     
-    local retries=30
+    local retries="${DB_INIT_TIMEOUT:-30}"
     local interval=2
     
     while [ $retries -gt 0 ]; do
-        if docker compose exec db pg_isready -U postgres > /dev/null 2>&1; then
+        if docker compose exec db pg_isready -U "${POSTGRES_USER}" > /dev/null 2>&1; then
             success "Database is ready"
             return 0
         fi
@@ -119,7 +137,7 @@ restore_database() {
     fi
     
     cd "$PROJECT_ROOT"
-    gunzip -c "$backup_file" | docker compose exec -T db psql -U postgres #FIXME
+    gunzip -c "$backup_file" | docker compose exec -T db psql -U "${POSTGRES_USER}" "${POSTGRES_DB}"
     
     success "Database restored successfully"
 }
@@ -148,8 +166,8 @@ verify_setup() {
     fi
     
     # Test database connection
-    if ! docker compose exec db psql -U postgres -d chess -c '\dt' > /dev/null 2>&1; then
-        error "Cannot connect to database"
+    if ! docker compose exec db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c '\dt' > /dev/null 2>&1; then
+        error "Could not connect to database"
         exit 1
     fi
     
@@ -180,9 +198,9 @@ main() {
     success "Docker environment setup completed successfully!"
     echo
     echo "Services are available at:"
-    echo "- Frontend: http://localhost:5173"
-    echo "- Backend:  http://localhost:5000"
-    echo "- Database: postgresql://localhost:5433"
+    echo "- Frontend: http://localhost:${WEB_PORT:-5173}"
+    echo "- Backend:  http://localhost:${API_PORT:-5000}"
+    echo "- Database: postgresql://localhost:${POSTGRES_PORT:-5433}"
 }
 
 # Execute main function

@@ -6,15 +6,24 @@
 # Exit on any error
 set -e
 
-# Configuration variables
-DB_NAME="chess-test-1"
-DB_USER="postgres"
-DB_PASSWORD="chesspass"
-DB_PORT="5433"
-DB_HOST="localhost"
-CONTAINER_NAME="src-db-1"
+# Source environment files
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MIGRATIONS_DIR="${SCRIPT_DIR}/../backend/migrations"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ENV_DB="${PROJECT_ROOT}/.env.db"
+ENV_BACKEND="${PROJECT_ROOT}/.env.backend"
+MIGRATIONS_DIR="${PROJECT_ROOT}/backend/migrations"
+
+# Check if environment files exist
+if [ ! -f "$ENV_DB" ] || [ ! -f "$ENV_BACKEND" ]; then
+    error "Environment files not found. Please ensure .env.db and .env.backend exist"
+    exit 1
+fi
+
+# Load environment variables
+set -a  # automatically export all variables
+source "$ENV_DB"
+source "$ENV_BACKEND"
+set +a
 
 # Color coding for output
 RED='\033[0;31m'
@@ -71,13 +80,14 @@ check_prerequisites() {
 
 # Function to check if database exists
 check_existing_db() {
-    log "Checking for existing database..."
-    if docker exec $CONTAINER_NAME psql -U $DB_USER -lqt | cut -d \| -f 1 | grep -qw $DB_NAME; then
-        warning "Database '$DB_NAME' already exists!"
-        read -p "Do you want to drop and recreate it? (y/N) " -n 1 -r
+    log "Checking if database exists..."
+    
+    if docker compose exec db psql -U "${POSTGRES_USER}" -lqt | cut -d \| -f 1 | grep -qw "${POSTGRES_DB}"; then
+        warning "Database '${POSTGRES_DB}' already exists"
+        read -p "Do you want to drop and recreate it? [y/N] " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            error "Setup aborted by user"
+            error "Setup aborted"
             exit 1
         fi
     fi
@@ -85,59 +95,58 @@ check_existing_db() {
 
 # Function to initialize database
 init_database() {
-    log "Initializing database environment..."
+    log "Initializing database..."
     
-    # Source the init_db.sh script
-    if [ -f "${SCRIPT_DIR}/init_db.sh" ]; then
-        source "${SCRIPT_DIR}/init_db.sh"
-    else
-        error "init_db.sh not found in ${SCRIPT_DIR}"
-        exit 1
-    fi
+    docker compose exec db dropdb -U "${POSTGRES_USER}" --if-exists "${POSTGRES_DB}"
+    docker compose exec db createdb -U "${POSTGRES_USER}" "${POSTGRES_DB}"
+    
+    success "Database initialized"
 }
 
 # Function to restore from backup
 restore_backup() {
     local backup_file=$1
-    log "Restoring database from backup: $backup_file"
+    log "Restoring from backup: $backup_file"
     
-    # Drop database if it exists
-    docker exec $CONTAINER_NAME psql -U $DB_USER -c "DROP DATABASE IF EXISTS $DB_NAME;"
-    docker exec $CONTAINER_NAME psql -U $DB_USER -c "CREATE DATABASE $DB_NAME;"
+    if [ ! -f "$backup_file" ]; then
+        error "Backup file not found: $backup_file"
+        exit 1
+    fi
     
-    # Restore from backup
-    gunzip -c "$backup_file" | docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME
+    gunzip -c "$backup_file" | docker compose exec -T db psql -U "${POSTGRES_USER}" "${POSTGRES_DB}"
     
-    success "Database restored successfully"
+    success "Backup restored successfully"
 }
 
 # Function to run migrations
 run_migrations() {
     log "Running database migrations..."
     
-    # Check if migrations directory exists
-    if [ ! -d "$MIGRATIONS_DIR" ]; then
-        error "Migrations directory not found: $MIGRATIONS_DIR"
-        exit 1
-    fi
+    for migration in "$MIGRATIONS_DIR"/*.sql; do
+        if [ -f "$migration" ]; then
+            log "Applying migration: $(basename "$migration")"
+            docker compose exec -T db psql -U "${POSTGRES_USER}" "${POSTGRES_DB}" < "$migration"
+        fi
+    done
     
-    # Run the Python migration script
-    python3 "${MIGRATIONS_DIR}/run_migrations.py"
-    
-    success "Migrations completed successfully"
+    success "Migrations completed"
 }
 
 # Function to verify setup
 verify_setup() {
     log "Verifying database setup..."
     
-    # Test database connection
-    if docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -c '\dt' > /dev/null 2>&1; then
-        success "Database connection verified"
-    else
-        error "Failed to connect to database"
+    if ! docker compose exec db pg_isready -U "${POSTGRES_USER}" > /dev/null 2>&1; then
+        error "Database is not responding"
         exit 1
     fi
+    
+    if ! docker compose exec db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c '\dt' > /dev/null 2>&1; then
+        error "Cannot connect to database"
+        exit 1
+    fi
+    
+    success "Database setup verified"
 }
 
 # Main execution
@@ -158,7 +167,7 @@ main() {
     success "Database setup completed successfully!"
     echo
     echo "You can now connect to the database using:"
-    echo "psql -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME"
+    echo "psql -h localhost -p ${POSTGRES_PORT} -U ${POSTGRES_USER} ${POSTGRES_DB}"
 }
 
 # Execute main function
