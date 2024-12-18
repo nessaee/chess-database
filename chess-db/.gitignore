@@ -1,2 +1,20 @@
 docs
 *.json
+
+# Environment files
+src/.env*
+.env*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Database
+*.gz
+postgres_data/

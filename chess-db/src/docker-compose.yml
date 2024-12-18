@@ -18,8 +18,8 @@ services:
     build: ./backend
     ports:
       - "5000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess
+    env_file:
+      - .env.backend
     depends_on:
       db:
         condition: service_healthy
@@ -30,10 +30,8 @@ services:
 
   db:
     image: postgres:17
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=chesspass
-      - POSTGRES_DB=chess
+    env_file:
+      - .env.db
     ports:
       - "5433:5432"
     volumes:
@@ -51,4 +49,4 @@ volumes:
 
 networks:
   default:
-    driver: bridge 
+    driver: bridge

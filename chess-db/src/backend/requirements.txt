@@ -1,8 +1,21 @@
-fastapi
-uvicorn
-sqlalchemy
-asyncpg
-bitarray
-python-chess
+# Web Framework
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Database
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+psycopg2==2.9.9
+alembic==1.13.1
+
+# Chess Analysis
+python-chess==1.999
+bitarray==2.8.3
+
+# Utilities
 pydantic==2.5.2
 python-dotenv==1.0.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1

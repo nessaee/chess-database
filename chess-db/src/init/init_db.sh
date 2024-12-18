@@ -6,13 +6,28 @@
 # Exit on any error
 set -e
 
-# Configuration variables
-DB_NAME="chess"
-DB_USER="postgres"
-DB_PASSWORD="chesspass"
-DB_PORT="5433"
-DB_HOST="localhost"
-CONTAINER_NAME="src-db-1"
+# Source environment files
+ENV_DB="../.env.db"
+ENV_BACKEND="../.env.backend"
+
+if [ ! -f "$ENV_DB" ] || [ ! -f "$ENV_BACKEND" ]; then
+    echo "Error: Environment files not found. Please ensure .env.db and .env.backend exist"
+    exit 1
+fi
+
+# Load environment variables
+set -a  # automatically export all variables
+source "$ENV_DB"
+source "$ENV_BACKEND"
+set +a
+
+# Map environment variables to script variables
+DB_NAME="${POSTGRES_DB:-chess}"
+DB_USER="${POSTGRES_USER:-postgres}"
+DB_PASSWORD="${POSTGRES_PASSWORD:-chesspass}"
+DB_PORT="${POSTGRES_PORT:-5433}"
+DB_HOST="${DB_HOST:-localhost}"
+CONTAINER_NAME="${POSTGRES_CONTAINER_NAME:-src-db-1}"
 
 # Color coding for output
 RED='\033[0;31m'

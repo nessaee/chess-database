@@ -2,32 +2,34 @@
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Step-by-Step Setup](#step-by-step-setup)
-  - [1. Clone the Repository](#1-clone-the-repository)
-  - [2. Environment Setup](#2-environment-setup)
-  - [3. Initialize Docker Environment](#3-initialize-docker-environment)
-  - [4. Verify Services](#4-verify-services)
-- [Directory Structure](#directory-structure)
-- [Configuration Options](#configuration-options)
-  - [Database Settings](#database-settings)
-  - [Frontend Settings](#frontend-settings)
-  - [Backend Settings](#backend-settings)
-- [Development Workflow](#development-workflow)
-  - [Starting the Environment](#starting-the-environment)
-  - [Viewing Logs](#viewing-logs)
-  - [Making Changes](#making-changes)
-  - [Stopping the Environment](#stopping-the-environment)
-- [Backup and Recovery](#backup-and-recovery)
-  - [Creating Backups](#creating-backups)
-  - [Restoring Backups](#restoring-backups)
-- [Troubleshooting](#troubleshooting)
-  - [Common Issues](#common-issues)
-  - [Health Checks](#health-checks)
-- [Security Notes](#security-notes)
-- [Production Deployment](#production-deployment)
-- [Support](#support)
+- [Chess Database Setup Guide](#chess-database-setup-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Prerequisites](#prerequisites)
+  - [Step-by-Step Setup](#step-by-step-setup)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Environment Setup](#2-environment-setup)
+    - [3. Initialize Docker Environment](#3-initialize-docker-environment)
+    - [4. Verify Services](#4-verify-services)
+  - [Directory Structure](#directory-structure)
+  - [Configuration Options](#configuration-options)
+    - [Database Settings](#database-settings)
+    - [Frontend Settings](#frontend-settings)
+    - [Backend Settings](#backend-settings)
+  - [Development Workflow](#development-workflow)
+    - [Starting the Environment](#starting-the-environment)
+    - [Viewing Logs](#viewing-logs)
+    - [Making Changes](#making-changes)
+    - [Stopping the Environment](#stopping-the-environment)
+  - [Backup and Recovery](#backup-and-recovery)
+    - [Creating Backups](#creating-backups)
+    - [Restoring Backups](#restoring-backups)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Health Checks](#health-checks)
+  - [Security Notes](#security-notes)
+  - [Production Deployment](#production-deployment)
+  - [Support](#support)
 
 ## Overview
 
@@ -58,17 +60,27 @@ cd chess-db
 
 ### 2. Environment Setup
 
-1. Create environment files:
+Create two environment files in the `src` directory:
 
 ```bash
-# .env.db
+# src/.env.db
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=chesspass
 POSTGRES_DB=chess
+```
 
-# .env.backend
+```bash
+# src/.env.backend
 DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess
 ```
+
+These environment files are used by Docker Compose to configure the services:
+- `.env.db` configures the PostgreSQL database service
+- `.env.backend` configures the FastAPI backend service
+
+The environment files should be placed in the same directory as your `docker-compose.yml` file (the `src` directory).
+
+> ⚠️ **Note**: Never commit these .env files to version control. Add them to your .gitignore file.
 
 ### 3. Initialize Docker Environment
 
@@ -117,13 +129,53 @@ chess-db/
 
 ### Database Settings
 
-- Port: 5433 (host) → 5432 (container)
-- Default credentials:
-  ```
-  User: postgres
-  Password: chesspass
-  Database: chess
-  ```
+The database configuration is managed through environment files in the root directory. All variables are required:
+
+1. `.env.db` - Core database settings:
+   ```bash
+   # Required Database Settings
+   POSTGRES_DB=chess           # Database name
+   POSTGRES_USER=postgres      # Database user
+   POSTGRES_PASSWORD=chesspass # Database password
+   POSTGRES_PORT=5433         # Database port
+   POSTGRES_CONTAINER_NAME=src-db-1  # Docker container name
+   ```
+
+2. `.env.backend` - Backend-specific settings:
+   ```bash
+   # Required Database Settings
+   DB_HOST=localhost          # Database host
+   TEST_DB_NAME=chess-test   # Test database name
+
+   # Required API Settings
+   API_BASE_URL=http://localhost:5000  # Base URL for API
+
+   # Required Cache Settings
+   CACHE_TTL=300             # Cache time-to-live in seconds
+
+   # Required Logging Settings
+   LOG_FILE=api.log          # Log file path
+   LOG_LEVEL=INFO           # Logging level (DEBUG, INFO, WARNING, ERROR)
+
+   # Required Rate Limiting
+   RATE_LIMIT=100/minute    # API rate limit
+   ```
+
+All initialization scripts and backend services require these environment files. To set up:
+
+1. Copy the example environment files:
+   ```bash
+   cp .env.db.example .env.db
+   cp .env.backend.example .env.backend
+   ```
+
+2. Edit both files with your configuration. These settings are used by:
+   - Database initialization scripts
+   - Backend FastAPI service
+   - Database container configuration
+   - Test environment setup
+
+The application will fail to start if any required environment variables are missing.
 
 ### Frontend Settings
 
