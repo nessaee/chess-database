@@ -39,7 +39,7 @@ check_prerequisites() {
     fi
     
     # Check if Docker Compose is installed
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker compose &> /dev/null; then
         error "Docker Compose is not installed"
         exit 1
     fi
@@ -71,7 +71,7 @@ cleanup_existing() {
     
     cd "$PROJECT_ROOT"
     if [ -f "$COMPOSE_FILE" ]; then
-        docker-compose down -v
+        docker compose down -v
     fi
     
     success "Cleanup completed"
@@ -82,8 +82,8 @@ start_containers() {
     log "Starting Docker containers..."
     
     cd "$PROJECT_ROOT"
-    docker-compose build --no-cache
-    docker-compose up -d
+    docker compose build --no-cache
+    docker compose up -d
     
     success "Containers started successfully"
 }
@@ -96,7 +96,7 @@ wait_for_db() {
     local interval=2
     
     while [ $retries -gt 0 ]; do
-        if docker-compose exec db pg_isready -U postgres > /dev/null 2>&1; then
+        if docker compose exec db pg_isready -U postgres > /dev/null 2>&1; then
             success "Database is ready"
             return 0
         fi
@@ -119,7 +119,7 @@ restore_database() {
     fi
     
     cd "$PROJECT_ROOT"
-    gunzip -c "$backup_file" | docker-compose exec -T db psql -U postgres chess
+    gunzip -c "$backup_file" | docker compose exec -T db psql -U postgres #FIXME
     
     success "Database restored successfully"
 }
@@ -129,7 +129,7 @@ run_migrations() {
     log "Running database migrations..."
     
     cd "$PROJECT_ROOT"
-    docker-compose exec web python migrations/run_migrations.py
+    docker compose exec web python migrations/run_migrations.py
     
     success "Migrations completed successfully"
 }
@@ -140,15 +140,15 @@ verify_setup() {
     
     # Check if all containers are running
     cd "$PROJECT_ROOT"
-    local running_containers=$(docker-compose ps --services --filter "status=running" | wc -l)
+    local running_containers=$(docker compose ps --services --filter "status=running" | wc -l)
     if [ "$running_containers" -ne 3 ]; then
         error "Not all containers are running"
-        docker-compose ps
+        docker compose ps
         exit 1
     fi
     
     # Test database connection
-    if ! docker-compose exec db psql -U postgres -d chess -c '\dt' > /dev/null 2>&1; then
+    if ! docker compose exec db psql -U postgres -d chess -c '\dt' > /dev/null 2>&1; then
         error "Cannot connect to database"
         exit 1
     fi
