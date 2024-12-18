@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Tab } from '@headlessui/react';
 import { MoveDistributionChart } from './charts/ChessCharts';
 import { LoadingState, ErrorState } from './states/LoadingStates';
 import AnalysisInterface from './analysis/AnalysisInterface';
@@ -7,6 +8,7 @@ import PlayerAnalysisView from './analysis/PlayerAnalysisView';
 import PlayerSearch from './PlayerSearch';
 import { AnalysisService } from '../services/AnalysisService';
 import { PlayerService } from '../services/PlayerService';
+import { classNames } from '../utils/classNames';
 
 /**
  * Enhanced Chess Analysis Component providing comprehensive chess game analysis
@@ -34,6 +36,14 @@ export default function ChessAnalysis() {
   const [timeRange, setTimeRange] = useState('monthly');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [minGames, setMinGames] = useState(20);
+
+  // Tab categories
+  const categories = [
+    { name: 'General', key: 'general' },
+    { name: 'Player Analysis', key: 'player' },
+    { name: 'Opening Explorer', key: 'openings' },
+    { name: 'Database Stats', key: 'database' }
+  ];
 
   // Initialize services
   const analysisService = new AnalysisService();
@@ -105,6 +115,42 @@ export default function ChessAnalysis() {
     }));
   };
 
+  const renderTabContent = (category) => {
+    switch (category) {
+      case 'general':
+        return (
+          <div className="space-y-8">
+            <MoveDistributionChart data={moveData} />
+            <DatabaseMetricsView data={dbMetrics} />
+          </div>
+        );
+      case 'player':
+        return playerId ? (
+          <PlayerAnalysisView
+            performanceData={performanceData}
+            openingAnalysis={openingAnalysis}
+            databaseMetrics={dbMetrics}
+          />
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            Please select a player to view analysis
+          </div>
+        );
+      case 'openings':
+        return (
+          <div className="text-center py-8 text-gray-500">
+            Opening explorer coming soon
+          </div>
+        );
+      case 'database':
+        return (
+          <DatabaseMetricsView data={dbMetrics} showDetails={true} />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <AnalysisInterface
@@ -121,27 +167,41 @@ export default function ChessAnalysis() {
         playerName={playerName}
       />
 
-      {isLoading && <LoadingState />}
-      {error && <ErrorState message={error} />}
-      
-      {!isLoading && !error && (
-        <div className="space-y-8">
-          {activeView === 'general' && (
-            <div className="space-y-8">
-              <MoveDistributionChart data={moveData} />
-              <DatabaseMetricsView data={dbMetrics} />
-            </div>
-          )}
-          
-          {activeView === 'player' && playerId && (
-            <PlayerAnalysisView
-              performanceData={performanceData}
-              openingAnalysis={openingAnalysis}
-              databaseMetrics={dbMetrics}
-            />
-          )}
-        </div>
-      )}
+      <Tab.Group onChange={(index) => setActiveView(categories[index].key)}>
+        <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
+          {categories.map((category) => (
+            <Tab
+              key={category.key}
+              className={({ selected }) =>
+                classNames(
+                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
+                  selected
+                    ? 'bg-white shadow text-blue-700'
+                    : 'text-gray-600 hover:bg-white/[0.12] hover:text-blue-600'
+                )
+              }
+            >
+              {category.name}
+            </Tab>
+          ))}
+        </Tab.List>
+        <Tab.Panels className="mt-2">
+          {categories.map((category) => (
+            <Tab.Panel
+              key={category.key}
+              className={classNames(
+                'rounded-xl bg-white p-3',
+                'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2'
+              )}
+            >
+              {isLoading && <LoadingState />}
+              {error && <ErrorState message={error} />}
+              {!isLoading && !error && renderTabContent(category.key)}
+            </Tab.Panel>
+          ))}
+        </Tab.Panels>
+      </Tab.Group>
     </div>
   );
 }

@@ -2,8 +2,8 @@
 Models for opening analysis using the game_opening_matches materialized view.
 """
 
-from datetime import date
-from typing import Optional, List, Dict, Any
+from datetime import date, timedelta
+from typing import Optional, List, Dict, Any, Union
 from pydantic import BaseModel, Field
 import json
 
@@ -16,6 +16,21 @@ class OpeningVariationStats(BaseModel):
     losses: int = Field(..., description="Number of losses")
     win_rate: float = Field(..., description="Win rate percentage")
     draw_rate: float = Field(..., description="Draw rate percentage")
+
+class OpeningComplexityStats(BaseModel):
+    """Statistics for opening complexity and timing"""
+    avg_time_per_move: Optional[timedelta] = Field(None, description="Average time spent per move")
+    complexity_score: Optional[float] = Field(None, description="Calculated complexity score (0-1)")
+
+    class Config:
+        """Model configuration."""
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "avg_time_per_move": "00:00:30",
+                "complexity_score": 0.75
+            }
+        }
 
 class TrendData(BaseModel):
     """Trend data model with parallel arrays for months, games, and win rates."""
@@ -50,7 +65,7 @@ class TrendData(BaseModel):
                 games=data.get("games", []),
                 win_rates=data.get("win_rates", [])
             )
-        except (json.JSONDecodeError, AttributeError):
+        except (json.JSONDecodeError, TypeError, ValueError):
             return cls()
 
     def dict(self, *args, **kwargs) -> Dict[str, Any]:
@@ -68,41 +83,30 @@ class TrendData(BaseModel):
 class OpeningStats(BaseModel):
     """Opening statistics model."""
     opening_name: str = Field(..., description="Full opening name")
-    name: str = Field(..., description="Full opening name", alias="opening_name")
+    eco_code: str = Field(..., description="ECO code")
     total_games: int = Field(..., description="Total number of games")
-    win_count: int = Field(..., description="Number of wins")
-    wins: int = Field(..., description="Number of wins", alias="win_count")
-    draw_count: int = Field(..., description="Number of draws")
-    draws: int = Field(..., description="Number of draws", alias="draw_count")
-    loss_count: int = Field(..., description="Number of losses")
-    losses: int = Field(..., description="Number of losses", alias="loss_count")
+    wins: int = Field(..., description="Number of wins")
+    draws: int = Field(..., description="Number of draws")
+    losses: int = Field(..., description="Number of losses")
     win_rate: float = Field(..., description="Win rate percentage")
     games_as_white: int = Field(..., description="Games played as white")
     games_as_black: int = Field(..., description="Games played as black")
     avg_game_length: float = Field(..., description="Average game length in moves")
-    trend_data: TrendData = Field(default_factory=TrendData, description="Monthly trend data")
-    message: str = Field(..., description="Analysis message")
-    type: str = Field(..., description="Type of insight")
+    last_played: date = Field(..., description="Date of last game")
+    trend_data: Union[str, TrendData] = Field(default_factory=TrendData, description="Monthly trend data")
     variations: List[Dict[str, Any]] = Field(default_factory=list, description="List of variations")
-
-    @property
-    def draw_rate(self) -> float:
-        """Calculate draw rate."""
-        if not self.total_games:
-            return 0.0
-        return round((self.draw_count / self.total_games) * 100, 1)
-
-    @property
-    def loss_rate(self) -> float:
-        """Calculate loss rate."""
-        if not self.total_games:
-            return 0.0
-        return round((self.loss_count / self.total_games) * 100, 1)
+    complexity_stats: OpeningComplexityStats = Field(
+        default_factory=OpeningComplexityStats,
+        description="Complexity and timing statistics"
+    )
+    popularity_score: Optional[int] = Field(None, description="Overall popularity score")
 
     def __init__(self, **data):
         """Initialize OpeningStats with custom handling for trend_data."""
         if "trend_data" in data and isinstance(data["trend_data"], str):
             data["trend_data"] = TrendData.from_json(data["trend_data"])
+        if "complexity_stats" in data and isinstance(data["complexity_stats"], dict):
+            data["complexity_stats"] = OpeningComplexityStats(**data["complexity_stats"])
         super().__init__(**data)
 
     class Config:
@@ -111,8 +115,19 @@ class OpeningStats(BaseModel):
         populate_by_name = True
         allow_population_by_field_name = True
         json_encoders = {
-            TrendData: lambda v: v.dict()
+            TrendData: lambda v: v.dict(),
+            OpeningComplexityStats: lambda v: v.dict()
         }
+
+    @property
+    def draw_rate(self) -> float:
+        """Calculate draw rate."""
+        return (self.draws / self.total_games * 100) if self.total_games > 0 else 0.0
+
+    @property
+    def loss_rate(self) -> float:
+        """Calculate loss rate."""
+        return (self.losses / self.total_games * 100) if self.total_games > 0 else 0.0
 
 class AnalysisInsight(BaseModel):
     """A single analysis insight"""
@@ -198,7 +213,14 @@ class OpeningAnalysisResponse(BaseModel):
 class PopularOpeningStats(BaseModel):
     """Statistics for popular openings"""
     name: str = Field(..., description="Full opening name")
+    eco_code: str = Field(..., description="ECO code")
     total_games: int = Field(..., description="Total number of games")
-    white_win_rate: float = Field(..., description="Win rate for white")
     unique_players: int = Field(..., description="Number of unique players")
-    variations: List[OpeningVariationStats] = Field(default_factory=list, description="List of variations within this opening")
+    avg_game_length: float = Field(..., description="Average game length in moves")
+    avg_opening_length: float = Field(..., description="Average opening length in moves")
+    complexity_score: Optional[float] = Field(None, description="Opening complexity score")
+    popularity_score: Optional[int] = Field(None, description="Overall popularity score")
+    variations: List[Dict[str, Any]] = Field(default_factory=list, description="List of variations")
+    white_win_rate: float = Field(..., description="Win rate for white")
+    draw_rate: float = Field(..., description="Draw rate percentage")
+    recent_analysis: Optional[List[Dict[str, Any]]] = Field(None, description="Recent engine analysis results")

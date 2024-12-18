@@ -48,21 +48,15 @@ async def get_database_metrics(
     response: Response,
     db: AsyncSession = Depends(get_session)
 ):
-
     """Get comprehensive database metrics and trends."""
     try:
         repo = AnalysisRepository(db)
-        stats = await repo.get_database_metrics()
-        
-        if not stats:
-            raise HTTPException(status_code=404, detail="No database metrics available")
-            
-        response.headers["Cache-Control"] = "public, max-age=1800"  # Cache for 30 minutes
-        return stats
-        
+        metrics = await repo.get_database_metrics()
+        response.headers[CACHE_CONTROL_HEADER] = "max-age=3600"  # Cache for 1 hour
+        return metrics
     except Exception as e:
         logger.error(f"Error getting database metrics: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/players/{player_id}/openings", response_model=OpeningAnalysisResponse)
 async def get_player_openings(
@@ -122,10 +116,16 @@ async def get_player_openings(
                 detail="start_date cannot be later than end_date"
             )
         
+        # Convert player_id to integer
+        try:
+            player_id_int = int(player_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="player_id must be an integer")
+        
         # Get opening analysis
         analysis = await opening_repository.get_player_openings(
             db=db,
-            username=player_id,
+            player_id=player_id_int,
             start_date=parsed_start_date,
             end_date=parsed_end_date,
             min_games=min_games,
@@ -143,9 +143,8 @@ async def get_player_openings(
             status_code=500,
             detail="Failed to get player opening analysis"
         )
-        
 
-@router.get("/openings/popular", response_model=List[PopularOpeningStats])
+@router.get("/popular-openings", response_model=List[PopularOpeningStats])
 async def get_popular_openings(
     response: Response,
     start_date: Optional[str] = Query(
