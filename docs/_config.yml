@@ -26,11 +26,11 @@ heading_anchors: true
 # External navigation links
 nav_external_links:
   - title: Chess Database on GitHub
-    url: https://github.com/yourusername/chess-db
+    url: https://github.com/nessaee/chess-database
     hide_icon: false
 
 # Footer content
-footer_content: "Copyright &copy; 2024 Chess Database Project. Distributed under MIT license."
+footer_content: ""
 
 # Back to top link
 back_to_top: true
@@ -46,7 +46,7 @@ color_scheme: light
 # Aux links for upper right navigation
 aux_links:
   "View on GitHub":
-    - "https://github.com/yourusername/chess-db"
+    - "https://github.com/nessaee/chess-database"
 
 # Makes Aux links open in new tab
 aux_links_new_tab: true
