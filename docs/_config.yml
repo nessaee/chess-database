@@ -2,6 +2,11 @@ title: Chess Database Documentation
 description: Documentation for the Chess Database System
 remote_theme: just-the-docs/just-the-docs@v0.7.0
 
+# Repository settings
+repository: nessaee/chess-database
+github_repo: chess-database
+github_username: nessaee
+
 # Jekyll settings
 baseurl: "/chess-database"
 url: "https://nessaee.github.io"
