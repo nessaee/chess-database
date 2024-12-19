@@ -136,23 +136,20 @@ sequenceDiagram
 
 ## Move Storage
 
+The system uses an efficient move encoding scheme:
+
 <div class="mermaid-wrapper">
 <pre class="mermaid">
 graph LR
-    %% Move Storage Flow
     A[UCI Move] -->|Encode| B[16-bit Integer]
-    B -->|Store| C[(Database)]
-    
-    D[Game Moves] -->|Compress| E[Binary Data]
-    E -->|Store| C
-    
+    B -->|Store| C[Database]
+    C -->|Retrieve| D[16-bit Integer]
+    D -->|Decode| E[UCI Move]
+
     %% Styling
-    classDef process fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef storage fill:#336791,stroke:#333,stroke-width:2px;
-    
-    class A,D process;
-    class B,E process;
-    class C storage;
+    classDef encode fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    class A,B,C,D,E encode;
+</pre>
 </div>
 
 ## Database Architecture

@@ -6,7 +6,7 @@ description: Complete reference for the Chess Database API endpoints
 
 # API Reference
 
-[← Documentation Home](README.md) | [System Architecture](architecture.md) | [System Diagram](system-diagram.md) | [Optimizations](optimizations.md)
+[← Documentation Home](README.md) | [System Architecture](architecture.md)
 
 <script type="module">
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -18,49 +18,168 @@ description: Complete reference for the Chess Database API endpoints
 
 ## Quick Links
 
-- [Authentication](backend/api.md#authentication)
-- [Game Operations](backend/api.md#game-operations)
-- [Player Operations](backend/api.md#player-operations)
-- [Analysis Operations](backend/api.md#analysis-operations)
+- [Authentication](#authentication)
+- [Game Operations](#games-api)
+- [Player Operations](#players-api)
+- [Analysis Operations](#analysis-api)
 
-## Related Documentation
-
-- [Backend Services](backend/api.md)
-- [Data Models](backend/models.md)
-- [Repository Layer](backend/repository.md)
-- [System Architecture](architecture.md)
+## API Overview
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
-graph LR
-    subgraph "API Endpoints"
+graph TB
+    subgraph API["API Layer"]
         GAMES["/games"]
         PLAYERS["/players"]
         ANALYSIS["/analysis"]
         METRICS["/metrics"]
     end
     
-    subgraph "HTTP Methods"
-        GET["GET"]
-        POST["POST"]
-        PUT["PUT"]
-        DELETE["DELETE"]
+    subgraph Methods["HTTP Methods"]
+        GET[["GET"]]
+        POST[["POST"]]
+        PUT[["PUT"]]
+        DELETE[["DELETE"]]
     end
     
-    GET --> GAMES
-    POST --> GAMES
-    GET --> PLAYERS
-    GET --> ANALYSIS
-    GET --> METRICS
+    GET --> GAMES & PLAYERS & ANALYSIS & METRICS
+    POST --> GAMES & ANALYSIS
+    PUT --> GAMES & PLAYERS
+    DELETE --> GAMES
     
-    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef http fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef method fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     
-    class GAMES,PLAYERS,ANALYSIS,METRICS endpoint;
-    class GET,POST,PUT,DELETE http;
+    class GAMES,PLAYERS,ANALYSIS,METRICS endpoint
+    class GET,POST,PUT,DELETE method
+</pre>
+</div>
+
+## Authentication Flow
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant A as Auth
+    participant API as API
+    participant D as DB
     
-    style "API Endpoints" fill:#f5f5f5,stroke:#333,stroke-width:2px;
-    style "HTTP Methods" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    C->>A: Request Token
+    A->>D: Validate
+    D-->>A: Result
+    
+    alt is valid
+        A-->>C: JWT Token
+        C->>API: Request + Token
+        API->>A: Verify Token
+        A-->>API: Valid
+        API-->>C: Response
+    else is invalid
+        A-->>C: Error
+    end
+</pre>
+</div>
+
+## Request Flow
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant M as Middleware
+    participant V as Validator
+    participant H as Handler
+    participant D as DB
+    
+    C->>M: Request
+    M->>V: Validate
+    V->>H: Process
+    H->>D: Query
+    D-->>H: Result
+    H-->>C: Response
+</pre>
+</div>
+
+## Error Handling
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+graph TB
+    subgraph Errors["Error Types"]
+        V[Validation]
+        A[Auth]
+        D[Database]
+        S[System]
+    end
+    
+    subgraph Handler["Error Handler"]
+        M[Middleware]
+        L[Logger]
+        R[Response]
+    end
+    
+    V & A & D & S --> M
+    M --> L
+    M --> R
+    
+    classDef error fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    classDef handler fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    
+    class V,A,D,S error
+    class M,L,R handler
+</pre>
+</div>
+
+## Rate Limiting
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+graph LR
+    R[Request] --> C[Check Limit]
+    C --> S[Store Count]
+    P[Policy] --> C
+    
+    C -->|Allow| H[Handler]
+    C -->|Block| E[Error]
+    
+    classDef flow fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    class R,C,S,P,H,E flow
+</pre>
+</div>
+
+## API Components
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+graph TB
+    subgraph Core["Core API"]
+        G["/games"]
+        P["/players"]
+        A["/analysis"]
+    end
+    
+    subgraph Auth["Auth"]
+        T["/token"]
+        R["/refresh"]
+    end
+    
+    subgraph Admin["Admin"]
+        U["/users"]
+        C["/config"]
+    end
+    
+    Client --> T
+    T --> G & P & A
+    T --> U & C
+    
+    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    classDef auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef admin fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    
+    class G,P,A core
+    class T,R auth
+    class U,C admin
 </pre>
 </div>
 

@@ -19,21 +19,19 @@ A high-performance chess database for game analysis and player statistics.
 {: .fs-6 .fw-300 }
 Built with modern technologies and optimized for performance.
 
-[Get Started](guides/setup.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started](guides/installation.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## Quick Start
 
-1. [Setup Guide](guides/setup.md)
+1. [Installation Guide](guides/installation.md)
 2. [System Architecture](architecture.md)
 3. [API Reference](api-reference.md)
 4. [Feature Demos](demos.md)
 
 ## System Overview
-
-The Chess Database is built with performance and scalability in mind:
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
@@ -41,8 +39,8 @@ graph TB
     %% Frontend Layer
     subgraph Frontend["Frontend Layer"]
         UI[React UI]
-        BOARD[Chess Board]
-        STATS[Statistics View]
+        BOARD[Game View]
+        STATS[Analysis View]
     end
     
     %% API Layer
@@ -86,26 +84,37 @@ graph TB
 ## Core Features
 
 1. **Game Analysis**
-   - [Move Encoding](backend/encoding.md)
-   - [Storage Optimization](backend/database.md)
-   - Performance Monitoring
+   - Real-time engine analysis
+   - Opening classification
+   - Tactical pattern detection
 
-2. **Database Features**
-   - [Partitioned Tables](backend/database.md#table-partitioning)
-   - [Materialized Views](backend/database.md#materialized-views)
-   - [Performance Indexes](backend/database.md#indexes)
+2. **Player Statistics**
+   - Rating progression
+   - Opening preferences
+   - Performance metrics
 
-3. **API Services**
-   - [RESTful Endpoints](api-reference.md)
-   - [Performance Metrics](backend/database.md#endpoint-performance-stats)
-   - [Error Handling](architecture.md#error-handling)
+3. **Database Features**
+   - [Efficient Move Storage](backend/encoding.md)
+   - [Database Optimizations](backend/database.md)
+   - [Performance Monitoring](backend/metrics.md) {% include under_construction.html %}
+
+4. **API Endpoints**
+   - [Game Operations](backend/api.md#game-operations)
+   - [Player Operations](backend/api.md#player-operations)
+   - [Analysis Operations](backend/api.md#analysis-operations)
+
+5. **Error Handling**
+   - [Error Types](backend/errors.md) {% include under_construction.html %}
+   - [Recovery Strategies](backend/errors.md#recovery) {% include under_construction.html %}
+   - [Error Reporting](backend/errors.md#reporting) {% include under_construction.html %}
 
 ## Documentation Structure
 
 1. **Getting Started**
-   - [Setup Guide](guides/setup.md)
-   - [Development Guide](guides/development.md)
-   - [Feature Demos](demos.md)
+   - [Installation Guide](guides/installation.md)
+   - [Configuration](guides/configuration.md)
+   - [API Usage](guides/api-usage.md)
+   - [Troubleshooting](guides/troubleshooting.md)
 
 2. **Architecture**
    - [System Overview](architecture.md)
@@ -132,11 +141,14 @@ graph TB
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) to get started.
+- [Development Setup](contributing/setup.md)
+- [Coding Standards](contributing/standards.md)
+- [Testing Guide](contributing/testing.md)
+- [Documentation Guide](contributing/documentation.md)
 
 ## Support
 
 Need help? Check out our:
-- [FAQ](guides/faq.md)
-- [Troubleshooting Guide](guides/troubleshooting.md)
-- [GitHub Issues](https://github.com/nessaee/chess-database/issues)
+- [FAQ](support/faq.md)
+- [Known Issues](support/known-issues.md)
+- [Community Forum](https://github.com/nessaee/chess-database/discussions)
