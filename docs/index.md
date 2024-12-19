@@ -2,22 +2,16 @@
 layout: default
 title: Chess Database Documentation
 description: A powerful system for analyzing chess games and tracking player statistics
+nav_order: 1
 ---
 
 # Chess Database Documentation
 
-<script type="module">
-	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-	mermaid.initialize({
-		startOnLoad: true,
-		theme: 'light'
-	});
-</script>
-
-The Chess Database is a powerful system for analyzing chess games and tracking player statistics. This documentation will help you understand, use, and contribute to the project.
+{: .fs-9 }
+A high-performance chess database for game analysis and player statistics.
 
 {: .fs-6 .fw-300 }
-Built with modern technologies and designed for scalability.
+Built with modern technologies and optimized for performance.
 
 [Get Started](guides/setup.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
@@ -26,97 +20,115 @@ Built with modern technologies and designed for scalability.
 
 ## Quick Start
 
-1. [Setup your environment](guides/setup.md)
-2. [Learn the architecture](architecture.md)
-3. [Explore the API](api-reference.md)
-4. [Start developing](guides/development.md)
+1. [Setup Guide](guides/setup.md)
+2. [System Architecture](architecture.md)
+3. [API Reference](api-reference.md)
+4. [Feature Demos](demos.md)
 
 ## System Overview
 
-The Chess Database is a full-stack application built with modern technologies:
+The Chess Database is built with performance and scalability in mind:
 
-<div class="mermaid-wrapper">
-<pre class="mermaid">
+<div class="mermaid">
 graph TB
-    %% System Overview
+    %% Frontend Layer
     subgraph Frontend["Frontend Layer"]
-        UI["User Interface"]
-        STATE["State Management"]
-        SERVICES["API Services"]
+        UI[React UI]
+        BOARD[Chess Board]
+        STATS[Statistics View]
     end
     
-    subgraph Backend["Backend Layer"]
-        API["API Gateway"]
-        AUTH["Authentication"]
-        HANDLERS["Request Handlers"]
+    %% API Layer
+    subgraph API["API Layer"]
+        FASTAPI[FastAPI Server]
+        METRICS[Performance Metrics]
+        SERVICES[Game Services]
     end
     
+    %% Data Layer
     subgraph Data["Data Layer"]
-        CACHE["Redis Cache"]
-        DB["PostgreSQL"]
-        MODELS["Data Models"]
+        PG[(PostgreSQL)]
+        VIEWS[Materialized Views]
+        PARTITIONS[Partitioned Tables]
     end
     
     %% Relationships
-    UI --> STATE
-    STATE --> SERVICES
-    SERVICES --> API
+    UI --> BOARD
+    UI --> STATS
+    BOARD --> FASTAPI
+    STATS --> FASTAPI
     
-    API --> AUTH
-    AUTH --> HANDLERS
-    HANDLERS --> CACHE
-    HANDLERS --> DB
+    FASTAPI --> METRICS
+    FASTAPI --> SERVICES
     
-    DB --> MODELS
-    MODELS --> HANDLERS
-    CACHE --> HANDLERS
+    SERVICES --> PG
+    SERVICES --> VIEWS
+    PG --> PARTITIONS
     
     %% Styling
-    classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef backend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    classDef data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px;
+    classDef api fill:#009688,stroke:#333,stroke-width:2px;
+    classDef data fill:#336791,stroke:#333,stroke-width:2px;
     
-    class UI,STATE,SERVICES frontend;
-    class API,AUTH,HANDLERS backend;
-    class CACHE,DB,MODELS data;
-    
-    %% Group Styling
-    style Frontend fill:#f5f5f5,stroke:#333,stroke-width:2px;
-    style Backend fill:#f5f5f5,stroke:#333,stroke-width:2px;
-    style Data fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</pre>
+    class UI,BOARD,STATS frontend;
+    class FASTAPI,METRICS,SERVICES api;
+    class PG,VIEWS,PARTITIONS data;
 </div>
 
-## Key Features
+## Core Features
 
-{: .highlight }
-> - **Interactive Game Analysis**: Analyze games move by move with engine evaluation
-> - **Player Statistics**: Track player performance and progress over time
-> - **Opening Theory**: Study and explore chess openings with statistical insights
-> - **Data Import/Export**: Support for PGN import and various export formats
+1. **Game Analysis**
+   - [Move Encoding](backend/encoding.md)
+   - [Storage Optimization](backend/database.md)
+   - Performance Monitoring
+
+2. **Database Features**
+   - [Partitioned Tables](backend/database.md#table-partitioning)
+   - [Materialized Views](backend/database.md#materialized-views)
+   - [Performance Indexes](backend/database.md#indexes)
+
+3. **API Services**
+   - [RESTful Endpoints](api-reference.md)
+   - [Performance Metrics](backend/database.md#endpoint-performance-stats)
+   - [Error Handling](architecture.md#error-handling)
 
 ## Documentation Structure
 
-The documentation is organized into several key sections:
+1. **Getting Started**
+   - [Setup Guide](guides/setup.md)
+   - [Development Guide](guides/development.md)
+   - [Feature Demos](demos.md)
 
-### Core Concepts
-- [Architecture Overview](architecture.md)
-- [Data Models](models.md)
-- [API Reference](api-reference.md)
+2. **Architecture**
+   - [System Overview](architecture.md)
+   - [Database Design](backend/database.md)
+   - [Move Encoding](backend/encoding.md)
 
-### Development
-- [Setup Guide](guides/setup.md): Instructions for setting up the development environment
-- [Development Guide](guides/development.md): Guidelines for development
-- [Deployment Guide](deployment.md)
+3. **API Reference**
+   - [Endpoints](api-reference.md)
+   - [Data Models](backend/models.md)
+   - [Authentication](api-reference.md#authentication)
 
-### Components
-- [Frontend Components](frontend/components.md)
-- [Backend Services](backend/api.md)
-- [Database Schema](backend/models.md)
+4. **Frontend**
+   - [Components](frontend/components.md)
+   - [State Management](frontend/state.md)
+   - [API Integration](frontend/api.md)
+
+## Performance Features
+
+{: .highlight }
+> - **Efficient Storage**: Binary move encoding reduces storage by ~70%
+> - **Fast Queries**: Materialized views and smart indexing
+> - **Scalable Design**: Table partitioning and performance monitoring
+> - **Real-time Analysis**: Pre-computed statistics and cached results
 
 ## Contributing
 
-We welcome contributions! See our [Development Guide](guides/development.md) to get started.
+We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) to get started.
 
-{: .warning }
-> Please read our contribution guidelines before submitting changes.
+## Support
+
+Need help? Check out our:
+- [FAQ](guides/faq.md)
+- [Troubleshooting Guide](guides/troubleshooting.md)
+- [GitHub Issues](https://github.com/nessaee/chess-database/issues)

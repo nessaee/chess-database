@@ -696,6 +696,39 @@ The encoding system is critical for:
 - Reduced network bandwidth
 - Quick position analysis
 
+## Database Architecture
+
+The system uses PostgreSQL with advanced optimizations detailed in our [Database Documentation](backend/database.md):
+
+### Partitioning Strategy
+```mermaid
+graph TB
+    subgraph Games Table
+        A[All Games] --> B[Low Rating<br/>0-1500]
+        A --> C[Mid Rating<br/>1501-2000]
+        A --> D[High Rating<br/>2001-3000]
+        A --> E[Master<br/>>3000]
+    end
+```
+
+### Materialized Views
+- Move count statistics
+- Opening match analysis
+- Player performance metrics
+- API endpoint monitoring
+
+### Performance Indexes
+- Player lookups
+- Opening searches
+- Date-based queries
+- Performance metrics
+
+The database layer provides:
+- Efficient data access patterns
+- Pre-computed statistics
+- Real-time monitoring
+- Optimized storage usage
+
 ## Security Measures
 
 The system implements several security features:
