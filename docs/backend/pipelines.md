@@ -14,7 +14,13 @@ Detailed documentation of the game and opening data processing pipelines.
 The Chess Database uses sophisticated pipelines to process and store chess games and openings efficiently.
 
 ---
-
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'light'
+	});
+</script>
 ## Overview
 
 The system implements two main data processing pipelines:

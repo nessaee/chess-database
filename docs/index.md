@@ -19,20 +19,18 @@ A high-performance chess database for game analysis and player statistics.
 {: .fs-6 .fw-300 }
 Built with modern technologies and optimized for performance.
 
-[Get Started](guides/installation.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started](guides/setup.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## Getting Started
-1. [Installation Guide](guides/installation.md)
-2. [Quick Start Tutorial](guides/quickstart.md)
-3. [Configuration](guides/configuration.md)
+1. [Setup Guide](guides/setup.md)
+2. [Development Guide](guides/development.md)
 
 ## Architecture
 1. [System Overview](architecture.md)
-2. [Design Principles](architecture/principles.md)
-3. [Data Flow](architecture/dataflow.md)
+2. [System Diagram](system-diagram.md)
 
 ## Backend
 1. [Database Design](backend/database.md)
@@ -50,65 +48,42 @@ Built with modern technologies and optimized for performance.
    - FastAPI Setup
    - Endpoint Design
    - Error Handling
+5. [Data Models](backend/models.md)
+   - Schema Definitions
+   - Validation Rules
+6. [Repository Layer](backend/repository.md)
+   - Data Access
+   - Query Optimization
 
 ## Frontend
 1. [React Components](frontend/components.md)
    - Game Viewer
    - Analysis Board
    - Statistics Dashboard
-2. [State Management](frontend/state.md)
-   - Data Flow
-   - Caching Strategy
-3. [UI/UX Design](frontend/design.md)
-   - Theme System
-   - Responsive Layout
-   - Accessibility
 
-## Features
-1. Game Analysis
-   - Real-time Engine Analysis
-   - Opening Classification
-   - Tactical Pattern Detection
-2. Player Statistics
-   - Rating Progression
-   - Opening Preferences
-   - Performance Metrics
-3. Database Operations
-   - Game Import/Export
-   - Batch Processing
-   - Data Validation
-
-## API Reference
+## API Documentation
 1. [REST API](api-reference.md)
    - Endpoints Overview
    - Request/Response Format
    - Authentication
-2. [WebSocket API](api-reference/websocket.md)
-   - Real-time Updates
-   - Event Types
-   - Connection Management
 
 ## Performance
 1. [Database Optimizations](optimizations.md)
    - Indexing Strategy
    - Query Performance
    - Cache Management
-2. [Monitoring](backend/metrics.md)
+2. [Metrics & Monitoring](backend/metrics.md)
    - System Metrics
    - API Performance
    - Resource Usage
 
 ## Development
-1. [Contributing Guide](contributing.md)
-   - Code Style
-   - Testing Guidelines
-   - Pull Request Process
-2. [Development Setup](guides/development.md)
+1. [Development Setup](guides/development.md)
    - Local Environment
    - Testing Tools
    - Debug Configuration
 
-## System Diagram
+## System Architecture
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
