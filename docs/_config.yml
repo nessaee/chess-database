@@ -1,21 +1,79 @@
 # Theme settings
 remote_theme: pages-themes/cayman@v0.2.0
+show_downloads: false
 
 # Site settings
 title: Chess Database Documentation
-description: Documentation for the Chess Database System
+description: A powerful system for analyzing chess games and tracking player statistics
 baseurl: "/chess-database"
 url: "https://nessaee.github.io"
-
-# Repository settings
 repository: nessaee/chess-database
-github_repo: chess-database
-github_username: nessaee
+
+# Build settings
+markdown: kramdown
+kramdown:
+  syntax_highlighter: rouge
+  input: GFM
+  auto_ids: true
+  hard_wrap: false
+  math_engine: mathjax
+  smart_quotes: ["apos", "apos", "quot", "quot"]
+  syntax_highlighter_opts:
+    css_class: highlight
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
 
 # Enable plugins
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-github-metadata
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .git
+  - .github
+  - README.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - "*.log"
+
+# GitHub metadata settings
+github: [metadata]
+repository: nessaee/chess-database
+
+# SEO settings
+twitter:
+  username: nessaee
+  card: summary
+social:
+  name: Chess Database
+  links:
+    - https://github.com/nessaee/chess-database
+
+# Mermaid diagram settings
+mermaid:
+  version: "10.6.1"
+  custom: |
+    {
+      "theme": "neutral",
+      "themeVariables": {
+        "primaryColor": "#159957",
+        "primaryTextColor": "#333",
+        "primaryBorderColor": "#333",
+        "lineColor": "#333",
+        "secondaryColor": "#606c71",
+        "tertiaryColor": "#159957"
+      }
+    }
 
 # Search settings
 search_enabled: true
@@ -45,22 +103,6 @@ footer_content: ""
 back_to_top: true
 back_to_top_text: "Back to top"
 
-# Mermaid settings
-mermaid:
-  version: "10.6.1"
-  custom: |
-    {
-      "theme": "neutral",
-      "themeVariables": {
-        "primaryColor": "#61DAFB",
-        "primaryTextColor": "#333",
-        "primaryBorderColor": "#333",
-        "lineColor": "#333",
-        "secondaryColor": "#009688",
-        "tertiaryColor": "#336791"
-      }
-    }
-
 # Aux links for upper right navigation
 aux_links:
   "View on GitHub":
@@ -82,21 +124,3 @@ callouts:
   important:
     title: Important
     color: red
-
-# Exclude from processing
-exclude:
-  - "*.gemspec"
-  - "*.gem"
-  - "Gemfile*"
-  - "README.md"
-  - "node_modules"
-  - "*.config.js"
-
-# Kramdown settings
-markdown: kramdown
-kramdown:
-  syntax_highlighter: rouge
-  math_engine: mathjax
-  syntax_highlighter_opts:
-    block:
-      line_numbers: false

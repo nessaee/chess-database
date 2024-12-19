@@ -1,4 +1,12 @@
+---
+layout: default
+title: API Reference
+description: Comprehensive documentation of the Chess Database API endpoints
+---
+
 # API Reference
+
+The Chess Database provides a RESTful API for interacting with the system. All endpoints are accessible via HTTPS and return JSON responses.
 
 ## Overview
 
@@ -7,12 +15,16 @@ The Chess Database API is built using FastAPI and provides endpoints for managin
 ## Base URL
 
 ```
-http://localhost:8000/api
+https://api.chess-database.org/v1
 ```
 
 ## Authentication
 
-Currently, the API uses CORS for security. Authentication will be implemented in future versions.
+All API requests require authentication using an API key. Include the key in the request header:
+
+```http
+Authorization: Bearer YOUR_API_KEY
+```
 
 ## Endpoints
 

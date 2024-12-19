@@ -10,6 +10,7 @@
     <meta name="theme-color" content="#157878">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+    {% include head-custom.html %}
     <!-- Mermaid initialization -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@{{ site.mermaid.version }}/dist/mermaid.min.js"></script>
     <script>
@@ -19,17 +20,16 @@
           theme: 'neutral',
           securityLevel: 'loose',
           themeVariables: {
-            primaryColor: '#61DAFB',
+            primaryColor: '#159957',
             primaryTextColor: '#333',
             primaryBorderColor: '#333',
             lineColor: '#333',
-            secondaryColor: '#009688',
-            tertiaryColor: '#336791'
+            secondaryColor: '#606c71',
+            tertiaryColor: '#159957'
           }
         });
       });
     </script>
-    {% include head-custom.html %}
   </head>
   <body>
     <a id="skip-to-content" href="#content">Skip to the content.</a>
@@ -43,6 +43,9 @@
       {% if site.show_downloads %}
         <a href="{{ site.github.zip_url }}" class="btn">Download .zip</a>
         <a href="{{ site.github.tar_url }}" class="btn">Download .tar.gz</a>
+      {% endif %}
+      {% if page.path contains "index" %}
+        <a href="{{ site.baseurl }}/setup-guide" class="btn">Get Started</a>
       {% endif %}
     </header>
 

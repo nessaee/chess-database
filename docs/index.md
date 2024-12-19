@@ -1,8 +1,7 @@
 ---
-layout: home
-title: Home
-nav_order: 1
-permalink: /
+layout: default
+title: Chess Database Documentation
+description: A powerful system for analyzing chess games and tracking player statistics
 ---
 
 # Chess Database Documentation
@@ -11,17 +10,17 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 
 {: .fs-6 .fw-300 }
 
-[Get Started]({{ site.baseurl }}/guides/setup){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started](setup-guide.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## Quick Start
 
-1. [Setup your environment]({{ site.baseurl }}/guides/setup)
-2. [Learn the architecture]({{ site.baseurl }}/architecture)
-3. [Explore the API]({{ site.baseurl }}/api-reference)
-4. [Start developing]({{ site.baseurl }}/guides/development)
+1. [Setup your environment](setup-guide.md)
+2. [Learn the architecture](architecture.md)
+3. [Explore the API](api-reference.md)
+4. [Start developing](development-guide.md)
 
 ## System Overview
 
@@ -80,10 +79,10 @@ graph LR
 ## Key Features
 
 {: .highlight }
-> - Interactive game analysis
-> - Player statistics tracking
-> - Opening repertoire analysis
-> - Database management tools
+> - **Interactive Game Analysis**: Analyze games move by move with engine evaluation
+> - **Player Statistics**: Track player performance and progress over time
+> - **Opening Theory**: Study and explore chess openings with statistical insights
+> - **Data Import/Export**: Support for PGN import and various export formats
 
 ## Documentation Structure
 
@@ -91,23 +90,23 @@ graph LR
 The documentation is organized into several key sections:
 
 ### Core Concepts
-- [Architecture Overview]({{ site.baseurl }}/architecture)
-- [Data Models]({{ site.baseurl }}/models)
-- [API Reference]({{ site.baseurl }}/api-reference)
+- [Architecture Overview](architecture.md)
+- [Data Models](models.md)
+- [API Reference](api-reference.md)
 
 ### Development
-- [Setup Guide]({{ site.baseurl }}/guides/setup)
-- [Development Guide]({{ site.baseurl }}/guides/development)
-- [Deployment Guide]({{ site.baseurl }}/deployment)
+- [Setup Guide](setup-guide.md): Instructions for setting up the development environment
+- [Development Guide](development-guide.md): Guidelines for development
+- [Deployment Guide](deployment.md)
 
 ### Components
-- [Frontend Components]({{ site.baseurl }}/frontend/components)
-- [Backend Services]({{ site.baseurl }}/backend/api)
-- [Database Schema]({{ site.baseurl }}/backend/models)
+- [Frontend Components](frontend/components.md)
+- [Backend Services](backend/api.md)
+- [Database Schema](backend/models.md)
 
 ## Contributing
 
-We welcome contributions! See our [Development Guide]({{ site.baseurl }}/guides/development) to get started.
+We welcome contributions! See our [Development Guide](development-guide.md) to get started.
 
 {: .warning }
 > Please read our contribution guidelines before submitting changes.
