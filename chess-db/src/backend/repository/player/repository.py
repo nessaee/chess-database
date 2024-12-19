@@ -286,6 +286,12 @@ class PlayerRepository:
             win_rate = round(100.0 * (total_wins + 0.5 * total_draws) / total_games, 2) if total_games > 0 else 0
             avg_moves = round(sum(p.avg_moves * p.games_played for p in performance_data) / total_games, 2) if total_games > 0 else 0
             
+            # Calculate opening diversity (number of unique openings / total games)
+            unique_openings = set()
+            for p in performance_data:
+                unique_openings.update(p.unique_openings)
+            opening_diversity = round(len(unique_openings) / total_games, 4) if total_games > 0 else 0.0
+            
             return DetailedPerformanceResponse(
                 time_period=time_period or 'all',
                 games_played=total_games,
@@ -298,7 +304,7 @@ class PlayerRepository:
                 black_games=sum(p.black_games for p in performance_data),
                 avg_elo=None,  # We'll add this if needed
                 elo_change=None,  # We'll add this if needed
-                opening_diversity=None,  # We'll add this if needed
+                opening_diversity=opening_diversity,
                 avg_game_length=avg_moves
             )
 

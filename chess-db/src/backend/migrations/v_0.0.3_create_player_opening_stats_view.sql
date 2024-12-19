@@ -1,5 +1,6 @@
--- Drop existing view and indexes if they exist
+-- Drop existing view and table if they exist
 DROP MATERIALIZED VIEW IF EXISTS player_opening_stats CASCADE;
+DROP TABLE IF EXISTS player_opening_stats CASCADE;
 
 -- Create materialized view for player opening statistics
 CREATE MATERIALIZED VIEW player_opening_stats AS
@@ -38,34 +39,68 @@ monthly_agg AS (
     FROM base_stats
     GROUP BY player_id, player_name, opening_id, month, partition_num
 ),
-trend_data_agg AS (
-    SELECT 
+partition_agg AS (
+    SELECT
         player_id,
         opening_id,
+        partition_num,
+        SUM(games) as total_games,
+        ROUND(SUM(points) / NULLIF(SUM(games), 0) * 100::numeric, 2) as win_rate
+    FROM monthly_agg
+    GROUP BY player_id, opening_id, partition_num
+),
+trend_data_agg AS (
+    SELECT 
+        m.player_id,
+        m.opening_id,
         jsonb_build_object(
-            'months', COALESCE(jsonb_agg(DISTINCT month ORDER BY month DESC), '[]'::jsonb),
+            'months', COALESCE(jsonb_agg(DISTINCT m.month ORDER BY m.month DESC), '[]'::jsonb),
             'monthly_stats', COALESCE(
                 jsonb_object_agg(
-                    month,
+                    m.month,
                     jsonb_build_object(
-                        'games', games,
-                        'win_rate', win_rate
+                        'games', m.games,
+                        'win_rate', m.win_rate
                     )
                 ),
                 '{}'::jsonb
             ),
             'partition_stats', COALESCE(
                 jsonb_object_agg(
-                    partition_num::text,
+                    p.partition_num::text,
                     jsonb_build_object(
-                        'games', COUNT(*),
-                        'win_rate', ROUND(AVG(win_rate), 2)
+                        'games', p.total_games,
+                        'win_rate', p.win_rate
                     )
                 ),
                 '{}'::jsonb
             )
         ) as trend_data
-    FROM monthly_agg
+    FROM monthly_agg m
+    LEFT JOIN partition_agg p ON 
+        p.player_id = m.player_id AND 
+        p.opening_id = m.opening_id AND
+        p.partition_num = m.partition_num
+    GROUP BY m.player_id, m.opening_id
+),
+partition_counts AS (
+    SELECT 
+        player_id,
+        opening_id,
+        partition_num,
+        COUNT(*) as game_count
+    FROM base_stats
+    GROUP BY player_id, opening_id, partition_num
+),
+partition_distribution AS (
+    SELECT 
+        player_id,
+        opening_id,
+        jsonb_object_agg(
+            partition_num::text,
+            game_count
+        ) as partition_distribution
+    FROM partition_counts
     GROUP BY player_id, opening_id
 )
 SELECT 
@@ -89,30 +124,43 @@ SELECT
     )) as trend_data,
     jsonb_build_object(
         'partition_distribution',
-        jsonb_object_agg(
-            bs.partition_num::text,
-            COUNT(*)
-        )
+        COALESCE(pd.partition_distribution, '{}'::jsonb)
     ) as partition_info
 FROM base_stats bs
 LEFT JOIN trend_data_agg td ON td.player_id = bs.player_id AND td.opening_id = bs.opening_id
-GROUP BY bs.player_id, bs.player_name, bs.opening_id, td.trend_data;
+LEFT JOIN partition_distribution pd ON pd.player_id = bs.player_id AND pd.opening_id = bs.opening_id
+GROUP BY bs.player_id, bs.player_name, bs.opening_id, td.trend_data, pd.partition_distribution;
 
 -- Create efficient indexes
-CREATE UNIQUE INDEX idx_player_opening_stats_player_opening 
-ON player_opening_stats (player_id, opening_id);
+DO $$
+BEGIN
+    -- Create unique index if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_player_opening_stats_player_opening') THEN
+        CREATE UNIQUE INDEX idx_player_opening_stats_player_opening 
+        ON player_opening_stats (player_id, opening_id);
+    END IF;
 
-CREATE INDEX idx_player_opening_stats_player_name 
-ON player_opening_stats (player_name)
-INCLUDE (total_games, win_rate);
+    -- Create player name index if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_player_opening_stats_player_name') THEN
+        CREATE INDEX idx_player_opening_stats_player_name 
+        ON player_opening_stats (player_name)
+        INCLUDE (total_games, win_rate);
+    END IF;
 
-CREATE INDEX idx_player_opening_stats_opening_id 
-ON player_opening_stats (opening_id)
-INCLUDE (total_games, win_rate);
+    -- Create opening id index if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_player_opening_stats_opening_id') THEN
+        CREATE INDEX idx_player_opening_stats_opening_id 
+        ON player_opening_stats (opening_id)
+        INCLUDE (total_games, win_rate);
+    END IF;
 
-CREATE INDEX idx_player_opening_stats_metrics 
-ON player_opening_stats (total_games DESC, win_rate DESC)
-INCLUDE (player_name, player_id);
+    -- Create metrics index if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_player_opening_stats_metrics') THEN
+        CREATE INDEX idx_player_opening_stats_metrics 
+        ON player_opening_stats (total_games DESC, win_rate DESC)
+        INCLUDE (player_name, player_id);
+    END IF;
+END $$;
 
 -- Create function to refresh the view
 CREATE OR REPLACE FUNCTION refresh_player_opening_stats()
