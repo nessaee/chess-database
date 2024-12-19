@@ -4,7 +4,13 @@ title: Chess Database Documentation
 description: A powerful system for analyzing chess games and tracking player statistics
 nav_order: 1
 ---
-
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'light'
+	});
+</script>
 # Chess Database Documentation
 
 {: .fs-9 }
@@ -29,7 +35,8 @@ Built with modern technologies and optimized for performance.
 
 The Chess Database is built with performance and scalability in mind:
 
-<div class="mermaid">
+<div class="mermaid-wrapper">
+<pre class="mermaid">
 graph TB
     %% Frontend Layer
     subgraph Frontend["Frontend Layer"]
@@ -73,6 +80,7 @@ graph TB
     class UI,BOARD,STATS frontend;
     class FASTAPI,METRICS,SERVICES api;
     class PG,VIEWS,PARTITIONS data;
+</pre>
 </div>
 
 ## Core Features

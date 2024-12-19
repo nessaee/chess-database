@@ -7,14 +7,14 @@ description: Visual demonstrations of Chess Database features
 
 # Feature Demonstrations
 
-{: .fs-9 }
+<!-- {: .fs-9 }
 Visual guides showing key features of the Chess Database system in action.
 
 {: .fs-6 .fw-300 }
 This page contains animated demonstrations of the main features and workflows.
 
 [Try It Now](https://chess-database.org){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View Source](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View Source](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 } -->
 
 ---
 
@@ -43,4 +43,4 @@ Track player performance with:
 
 Track database health and performance with:
 - Endpoint metrics
-- OVerall game statistics
+- Overall game statistics
