@@ -14,6 +14,13 @@ Comprehensive guide to database partitioning, materialized views, and indexing s
 The Chess Database uses advanced PostgreSQL features to optimize performance and storage efficiency.
 
 ---
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'light'
+	});
+</script>
 
 ## Entity Relationship Diagram
 
