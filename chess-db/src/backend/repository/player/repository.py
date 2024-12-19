@@ -9,7 +9,11 @@ from ..models import (
     PlayerResponse,
     PlayerSearchResponse,
     PlayerPerformanceResponse,
-    DetailedPerformanceResponse
+    DetailedPerformanceResponse,
+    GameDB
+)
+from ..models.game import (
+    RESULT_WHITE, RESULT_BLACK, RESULT_DRAW, RESULT_UNKNOWN
 )
 from ..common.validation import DateHandler
 from ..game.decoder import GameDecoder
@@ -151,11 +155,11 @@ class PlayerRepository:
                             ELSE 'black'
                         END as player_color,
                         CASE
-                            WHEN (g.white_player_id = {player_id} AND g.result = '1-0')
-                                OR (g.black_player_id = {player_id} AND g.result = '0-1')
+                            WHEN (g.white_player_id = {player_id} AND g.result = {RESULT_WHITE})  -- White wins
+                                OR (g.black_player_id = {player_id} AND g.result = {RESULT_BLACK})  -- Black wins
                             THEN 1
-                            WHEN g.result = '1/2-1/2' THEN 0.5
-                            ELSE 0
+                            WHEN g.result = {RESULT_DRAW} THEN 0.5  -- Draw
+                            ELSE 0  -- Unknown or loss
                         END as points,
                         octet_length(moves) / 2 as num_moves,
                         CASE 
@@ -193,13 +197,13 @@ class PlayerRepository:
                     ORDER BY period
                 )
                 SELECT 
-                    period,
+                    period as time_period,
                     games_played,
                     wins,
                     losses,
                     draws,
                     ROUND(100.0 * (wins + 0.5 * draws) / NULLIF(games_played, 0), 2) as win_rate,
-                    ROUND(COALESCE(avg_moves, 0)::numeric, 2) as avg_moves,
+                    ROUND(COALESCE(avg_moves, 0)::numeric, 2) as avg_game_length,
                     white_games,
                     black_games,
                     unique_openings,
@@ -207,40 +211,33 @@ class PlayerRepository:
                     ROUND(avg_elo::numeric, 0) as avg_elo,
                     ROUND(elo_change::numeric, 0) as elo_change
                 FROM period_stats
+                ORDER BY period DESC;
             """
 
-            logger.info("Executing performance query")
-            try:
-                result = await self.db.execute(text(query))
-                rows = result.fetchall()
-                logger.info(f"Found {len(rows)} performance records")
-            except Exception as e:
-                logger.error(f"Error executing query: {str(e)}")
-                logger.error(f"Query was: {query}")
-                raise
+            result = await self.db.execute(text(query))
+            rows = result.fetchall()
 
             return [
                 DetailedPerformanceResponse(
-                    time_period=row.period,
+                    time_period=row.time_period,
                     games_played=row.games_played,
                     wins=row.wins,
                     losses=row.losses,
                     draws=row.draws,
-                    win_rate=row.win_rate or 0,
-                    avg_moves=row.avg_moves or 0,
+                    win_rate=float(row.win_rate or 0),
+                    avg_moves=float(row.avg_game_length or 0),  # Use same value for both
+                    avg_game_length=float(row.avg_game_length or 0),
                     white_games=row.white_games,
                     black_games=row.black_games,
-                    avg_elo=row.avg_elo,
-                    elo_change=row.elo_change,
-                    opening_diversity=row.opening_diversity or 0,
-                    avg_game_length=row.avg_moves or 0
+                    opening_diversity=float(row.opening_diversity or 0),
+                    avg_elo=int(row.avg_elo) if row.avg_elo else None,
+                    elo_change=int(row.elo_change) if row.elo_change else None
                 )
                 for row in rows
             ]
 
         except Exception as e:
             logger.error(f"Error getting player performance: {str(e)}")
-            logger.exception(e)  # This will log the full stack trace
             raise
 
     async def get_detailed_stats(
@@ -292,22 +289,31 @@ class PlayerRepository:
             
             # Calculate aggregated metrics
             win_rate = round(100.0 * (total_wins + 0.5 * total_draws) / total_games, 2) if total_games > 0 else 0
-            avg_moves = round(sum(p.avg_moves * p.games_played for p in performance_data) / total_games, 2) if total_games > 0 else 0
+            avg_moves = round(sum(p.avg_game_length * p.games_played for p in performance_data) / total_games, 2) if total_games > 0 else 0
             
+            # Calculate opening diversity (number of unique openings / total games)
+            unique_openings = set()
+            for p in performance_data:
+                unique_openings.update(p.unique_openings)
+            opening_diversity = round(len(unique_openings) / total_games, 4) if total_games > 0 else 0.0
+            
+            total_white_games = sum(p.white_games for p in performance_data)
+            total_black_games = sum(p.black_games for p in performance_data)
+
             return DetailedPerformanceResponse(
-                time_period=time_period or 'all',
+                time_period=time_period,
                 games_played=total_games,
                 wins=total_wins,
                 losses=total_losses,
                 draws=total_draws,
                 win_rate=win_rate,
-                avg_moves=avg_moves,
-                white_games=sum(p.white_games for p in performance_data),
-                black_games=sum(p.black_games for p in performance_data),
+                avg_moves=avg_moves,  # Keep both fields
+                avg_game_length=avg_moves,  # They represent the same data
+                white_games=total_white_games,
+                black_games=total_black_games,
+                opening_diversity=opening_diversity,
                 avg_elo=None,  # We'll add this if needed
                 elo_change=None,  # We'll add this if needed
-                opening_diversity=None,  # We'll add this if needed
-                avg_game_length=avg_moves
             )
 
         except Exception as e:

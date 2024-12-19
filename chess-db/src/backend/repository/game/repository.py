@@ -105,7 +105,7 @@ class GameRepository:
             for game in games:
                 try:
                     # Create base response from DB model
-                    game_response = GameResponse.from_db(game)
+                    game_response = GameResponse.from_db(game, move_notation=move_notation)
                     
                     # Decode binary moves to UCI
                     uci_moves = self.decoder.decode_moves(game.moves)
@@ -162,7 +162,7 @@ class GameRepository:
                 return None
 
             # Create base response from DB model
-            game_response = GameResponse.from_db(game)
+            game_response = GameResponse.from_db(game, move_notation=move_notation)
             
             # Decode moves
             uci_moves = self.decoder.decode_moves(game.moves)
@@ -244,23 +244,11 @@ class GameRepository:
             result = await self.db.execute(query)
             games = result.unique().scalars().all()
 
-            # Convert to response models, filtering out None responses
-            responses = []
-            for game in games:
-                game_response = GameResponse.from_db(game)
-                uci_moves = self.decoder.decode_moves(game.moves)
-                if move_notation == 'san':
-                    san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)
-                    moves_str = ' '.join(san_moves)
-                    game_response.opening_name = opening_name
-                else:
-                    moves_str = ' '.join(uci_moves)
-                    num_moves = len(uci_moves)
-                game_response.moves = moves_str
-                game_response.num_moves = num_moves
-                responses.append(game_response)
-
-            return responses
+            # Convert to response models
+            return [
+                GameResponse.from_db(game, move_notation=move_notation)
+                for game in games
+            ]
 
         except Exception as e:
             logger.error(f"Error fetching games for player {player_name}: {e}")
@@ -352,7 +340,7 @@ class GameRepository:
             # Convert games to responses using asyncio.gather
             responses = []
             for game in games:
-                game_response = GameResponse.from_db(game)
+                game_response = GameResponse.from_db(game, move_notation=move_notation)
                 uci_moves = self.decoder.decode_moves(game.moves)
                 if move_notation == 'san':
                     san_moves, opening_name, num_moves = self.decoder.convert_uci_to_san(uci_moves)

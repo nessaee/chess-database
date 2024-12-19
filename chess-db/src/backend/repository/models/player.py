@@ -42,6 +42,6 @@ class DetailedPerformanceResponse(PlayerPerformanceResponse):
     white_games: int
     black_games: int
     elo_change: Optional[int] = None
-    opening_diversity: float
+    opening_diversity: float = Field(ge=0.0, le=1.0, description="Ratio of unique openings to total games")
     avg_game_length: float
     model_config = ConfigDict(from_attributes=True)

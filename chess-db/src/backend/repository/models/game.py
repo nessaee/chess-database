@@ -5,32 +5,35 @@ from .base import (
     ForeignKey, relationship, BaseModel, ConfigDict
 )
 from .player import PlayerResponse, PlayerDB
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import date
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Result mapping constants
-RESULT_BLACK = 0   # '0-1'
+RESULT_UNKNOWN = 3  # '*'
+RESULT_DRAW = 2     # '1/2-1/2'
 RESULT_WHITE = 1   # '1-0'
-RESULT_DRAW = 2    # '1/2-1/2'
-RESULT_UNKNOWN = 3 # '*'
+RESULT_BLACK = 0    # '0-1'
 
 def decode_result(result_bits: int) -> str:
     """Convert 2-bit result to string representation."""
     result_map = {
-        RESULT_BLACK: '0-1',
-        RESULT_WHITE: '1-0',
+        RESULT_UNKNOWN: '*',
         RESULT_DRAW: '1/2-1/2',
-        RESULT_UNKNOWN: '*'
+        RESULT_WHITE: '1-0',
+        RESULT_BLACK: '0-1'
     }
     return result_map.get(result_bits, '*')
 
 def encode_result(result_str: str) -> int:
     """Convert string result to 2-bit representation."""
     result_map = {
-        '0-1': RESULT_BLACK,
-        '1-0': RESULT_WHITE,
+        '*': RESULT_UNKNOWN,
         '1/2-1/2': RESULT_DRAW,
-        '*': RESULT_UNKNOWN
+        '1-0': RESULT_WHITE,
+        '0-1': RESULT_BLACK
     }
     return result_map.get(result_str, RESULT_UNKNOWN)
 
@@ -64,6 +67,11 @@ class GameDB(Base):
         """Get the string representation of the result."""
         return decode_result(self.result)
 
+    @classmethod
+    def from_result_str(cls, result_str: str) -> int:
+        """Convert string result to database format."""
+        return encode_result(result_str)
+
 class PlayerInGame(BaseModel):
     """Player information within a game response"""
     id: int
@@ -80,13 +88,33 @@ class GameResponse(BaseModel):
     date: Optional[date]
     result: str
     eco: Optional[str] = None
-    moves: Optional[str] = None
+    moves: Optional[List[str]] = None  # List of moves in UCI format
+    moves_san: Optional[List[str]] = None  # List of moves in SAN format
     num_moves: Optional[int] = None  # Total number of moves
     opening_name: Optional[str] = None  # ECO opening name if available
 
     @classmethod
-    def from_db(cls, game: GameDB) -> "GameResponse":
+    def from_db(cls, game: GameDB, move_notation: str = 'uci') -> "GameResponse":
         """Create response model from database model."""
+        from ..game.decoder import GameDecoder
+        decoder = GameDecoder()
+
+        # Decode moves if present
+        moves = None
+        moves_san = None
+        num_moves = None
+        if game.moves:
+            try:
+                moves = decoder.decode_moves(game.moves)
+                num_moves = len(moves)
+                if move_notation == 'san':
+                    moves_san = decoder.convert_to_san(moves)
+            except Exception as e:
+                logger.error(f"Failed to decode moves for game {game.id}: {str(e)}")
+                moves = None
+                moves_san = None
+                num_moves = None
+
         return cls(
             id=game.id,
             white_player_id=game.white_player_id,
@@ -104,7 +132,10 @@ class GameResponse(BaseModel):
             date=game.date,
             result=game.get_result_str(),
             eco=game.eco,
-            moves=game.moves
+            moves=moves_san if move_notation == 'san' else moves,
+            moves_san=moves_san,
+            num_moves=num_moves,
+            opening_name=None  # To be populated later if needed
         )
 
     model_config = ConfigDict(from_attributes=True)

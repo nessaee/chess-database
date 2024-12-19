@@ -174,19 +174,19 @@ const ChessAnalysis = () => {
         </div>
       )
     },
-    {
-      name: 'Analysis Interface',
-      content: (
-        <AnalysisInterface
-          timeRange={timeRange}
-          dateRange={dateRange}
-          minGames={minGames}
-          onTimeRangeChange={handleTimeRangeChange}
-          onDateRangeChange={handleDateRangeChange}
-          onMinGamesChange={handleMinGamesChange}
-        />
-      )
-    }
+    // {
+    //   name: 'Analysis Interface',
+    //   content: (
+    //     <AnalysisInterface
+    //       timeRange={timeRange}
+    //       dateRange={dateRange}
+    //       minGames={minGames}
+    //       onTimeRangeChange={handleTimeRangeChange}
+    //       onDateRangeChange={handleDateRangeChange}
+    //       onMinGamesChange={handleMinGamesChange}
+    //     />
+    //   )
+    // }
   ];
 
   return (
