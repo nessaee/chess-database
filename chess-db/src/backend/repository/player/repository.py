@@ -9,7 +9,8 @@ from ..models import (
     PlayerResponse,
     PlayerSearchResponse,
     PlayerPerformanceResponse,
-    DetailedPerformanceResponse
+    DetailedPerformanceResponse,
+    GameDB
 )
 from ..common.validation import DateHandler
 from ..game.decoder import GameDecoder
@@ -151,10 +152,10 @@ class PlayerRepository:
                             ELSE 'black'
                         END as player_color,
                         CASE
-                            WHEN (g.white_player_id = {player_id} AND g.result = '1-0')
-                                OR (g.black_player_id = {player_id} AND g.result = '0-1')
+                            WHEN (g.white_player_id = {player_id} AND g.result = 2)
+                                OR (g.black_player_id = {player_id} AND g.result = 3)
                             THEN 1
-                            WHEN g.result = '1/2-1/2' THEN 0.5
+                            WHEN g.result = 1 THEN 0.5
                             ELSE 0
                         END as points,
                         octet_length(moves) / 2 as num_moves,
@@ -199,25 +200,18 @@ class PlayerRepository:
                     losses,
                     draws,
                     ROUND(100.0 * (wins + 0.5 * draws) / NULLIF(games_played, 0), 2) as win_rate,
-                    ROUND(COALESCE(avg_moves, 0)::numeric, 2) as avg_moves,
+                    ROUND(avg_moves, 2) as avg_moves,
                     white_games,
                     black_games,
                     unique_openings,
-                    ROUND(COALESCE(unique_openings::numeric / NULLIF(games_played, 0), 0), 2) as opening_diversity,
-                    ROUND(avg_elo::numeric, 0) as avg_elo,
-                    ROUND(elo_change::numeric, 0) as elo_change
+                    ROUND(avg_elo, 2) as avg_elo,
+                    elo_change
                 FROM period_stats
+                ORDER BY period DESC;
             """
 
-            logger.info("Executing performance query")
-            try:
-                result = await self.db.execute(text(query))
-                rows = result.fetchall()
-                logger.info(f"Found {len(rows)} performance records")
-            except Exception as e:
-                logger.error(f"Error executing query: {str(e)}")
-                logger.error(f"Query was: {query}")
-                raise
+            result = await self.db.execute(text(query))
+            rows = result.fetchall()
 
             return [
                 DetailedPerformanceResponse(
@@ -226,21 +220,19 @@ class PlayerRepository:
                     wins=row.wins,
                     losses=row.losses,
                     draws=row.draws,
-                    win_rate=row.win_rate or 0,
-                    avg_moves=row.avg_moves or 0,
+                    win_rate=float(row.win_rate or 0),
+                    avg_moves=float(row.avg_moves or 0),
                     white_games=row.white_games,
                     black_games=row.black_games,
-                    avg_elo=row.avg_elo,
-                    elo_change=row.elo_change,
-                    opening_diversity=row.opening_diversity or 0,
-                    avg_game_length=row.avg_moves or 0
+                    unique_openings=row.unique_openings,
+                    avg_elo=float(row.avg_elo or 0),
+                    elo_change=row.elo_change or 0
                 )
                 for row in rows
             ]
 
         except Exception as e:
             logger.error(f"Error getting player performance: {str(e)}")
-            logger.exception(e)  # This will log the full stack trace
             raise
 
     async def get_detailed_stats(

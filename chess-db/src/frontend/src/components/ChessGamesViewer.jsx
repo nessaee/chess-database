@@ -335,7 +335,7 @@ const ChessGamesViewer = () => {
       setGame(newGame);
       
       // Split moves and set them
-      const moves = selectedGame.moves.split(' ');
+      const moves = selectedGame.moves;
       setMoves(moves);
       
       // Reset the board position

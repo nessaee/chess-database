@@ -153,6 +153,39 @@ class GameDecoder:
             logger.error(f"Error converting UCI to SAN: {str(e)}")
             return [], None, 0
 
+    def convert_to_san(self, uci_moves: List[str]) -> List[str]:
+        """
+        Convert UCI moves to SAN notation.
+        
+        Args:
+            uci_moves: List of moves in UCI format
+            
+        Returns:
+            List of moves in SAN format
+            
+        Raises:
+            ValueError: If moves are invalid
+        """
+        try:
+            board = chess.Board()
+            san_moves = []
+            
+            for uci in uci_moves:
+                try:
+                    move = chess.Move.from_uci(uci)
+                    san = board.san(move)
+                    san_moves.append(san)
+                    board.push(move)
+                except ValueError as e:
+                    logger.error(f"Invalid UCI move {uci}: {str(e)}")
+                    raise ValueError(f"Invalid UCI move {uci}: {str(e)}")
+            
+            return san_moves
+            
+        except Exception as e:
+            logger.error(f"Failed to convert moves to SAN: {str(e)}")
+            raise ValueError(f"Failed to convert moves to SAN: {str(e)}")
+
     def _get_opening_name(self, moves: List[str]) -> Optional[str]:
         """
         Get opening name based on initial moves.

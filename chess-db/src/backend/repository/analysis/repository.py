@@ -169,8 +169,8 @@ class AnalysisRepository:
                         COUNT(*) as total_games,
                         COUNT(DISTINCT COALESCE(white_player_id, black_player_id)) as total_players,
                         AVG(array_length(string_to_array(moves::text, ' '), 1)) as avg_moves_per_game,
-                        AVG(CASE WHEN result = '1-0' THEN 1 WHEN result = '0-1' THEN 0 ELSE 0.5 END) as white_win_rate,
-                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
+                        AVG(CASE WHEN result = 2 THEN 1 WHEN result = 3 THEN 0 ELSE 0.5 END) as white_win_rate,
+                        COUNT(CASE WHEN result = 1 THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
                         COUNT(CASE WHEN moves IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as null_moves_rate,
                         COUNT(CASE WHEN white_player_id IS NULL OR black_player_id IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as missing_player_rate,
                         COUNT(CASE WHEN result IS NULL THEN 1 END)::float / NULLIF(COUNT(*), 0) as missing_result_rate
@@ -324,8 +324,8 @@ class AnalysisRepository:
         """Get database performance metrics."""
         query = """
             SELECT
-                AVG(CASE WHEN result = '1-0' THEN 1 WHEN result = '0-1' THEN 0 ELSE 0.5 END) as white_win_rate,
-                COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
+                AVG(CASE WHEN result = 2 THEN 1 WHEN result = 3 THEN 0 ELSE 0.5 END) as white_win_rate,
+                COUNT(CASE WHEN result = 1 THEN 1 END)::float / NULLIF(COUNT(*), 0) as draw_rate,
                 AVG(array_length(string_to_array(moves::text, ' '), 1)) as avg_game_length
             FROM games
             WHERE result IS NOT NULL
@@ -411,10 +411,10 @@ class AnalysisRepository:
                         date_trunc('{date_trunc}', date) as period,
                         COUNT(*) as games_played,
                         COUNT(CASE WHEN 
-                            (white_player_id = :player_id AND result = '1-0') OR
-                            (black_player_id = :player_id AND result = '0-1')
+                            (white_player_id = :player_id AND result = 2) OR
+                            (black_player_id = :player_id AND result = 3)
                         THEN 1 END) as wins,
-                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END) as draws,
+                        COUNT(CASE WHEN result = 1 THEN 1 END) as draws,
                         AVG(CASE 
                             WHEN white_player_id = :player_id THEN white_elo
                             WHEN black_player_id = :player_id THEN black_elo
@@ -473,10 +473,10 @@ class AnalysisRepository:
                         eco,
                         COUNT(*) as games_played,
                         COUNT(CASE WHEN 
-                            (white_player_id = :player_id AND result = '1-0') OR
-                            (black_player_id = :player_id AND result = '0-1')
+                            (white_player_id = :player_id AND result = 2) OR
+                            (black_player_id = :player_id AND result = 3)
                         THEN 1 END) as wins,
-                        COUNT(CASE WHEN result = '1/2-1/2' THEN 1 END) as draws,
+                        COUNT(CASE WHEN result = 1 THEN 1 END) as draws,
                         COUNT(CASE WHEN white_player_id = :player_id THEN 1 END) as white_games,
                         COUNT(CASE WHEN black_player_id = :player_id THEN 1 END) as black_games
                     FROM games

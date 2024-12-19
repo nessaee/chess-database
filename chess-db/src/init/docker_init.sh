@@ -147,13 +147,11 @@ restore_database() {
 run_migrations() {
     log "Running database migrations..."
     
-    if [ -d "$MIGRATIONS_DIR" ]; then
-        log "Applying migrations from ${MIGRATIONS_DIR}..."
-        docker compose exec web alembic upgrade head
-        success "Migrations completed successfully"
-    else
-        warning "No migrations directory found at ${MIGRATIONS_DIR}"
-    fi
+    # Make the migrations script executable
+    chmod +x "${SCRIPT_DIR}/run_migrations.sh"
+    
+    # Run migrations
+    "${SCRIPT_DIR}/run_migrations.sh"
 }
 
 # Function to verify setup
