@@ -11,17 +11,17 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 
 {: .fs-6 .fw-300 }
 
-[Get Started](guides/setup){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started]({{ site.baseurl }}/guides/setup){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## Quick Start
 
-1. [Setup your environment](guides/setup)
-2. [Learn the architecture](architecture)
-3. [Explore the API](api-reference)
-4. [Start developing](guides/development)
+1. [Setup your environment]({{ site.baseurl }}/guides/setup)
+2. [Learn the architecture]({{ site.baseurl }}/architecture)
+3. [Explore the API]({{ site.baseurl }}/api-reference)
+4. [Start developing]({{ site.baseurl }}/guides/development)
 
 ## System Overview
 
@@ -65,23 +65,23 @@ graph TD
 The documentation is organized into several key sections:
 
 ### Core Concepts
-- [Architecture Overview](architecture)
-- [Data Models](models)
-- [API Reference](api-reference)
+- [Architecture Overview]({{ site.baseurl }}/architecture)
+- [Data Models]({{ site.baseurl }}/models)
+- [API Reference]({{ site.baseurl }}/api-reference)
 
 ### Development
-- [Setup Guide](guides/setup)
-- [Development Guide](guides/development)
-- [Deployment Guide](deployment)
+- [Setup Guide]({{ site.baseurl }}/guides/setup)
+- [Development Guide]({{ site.baseurl }}/guides/development)
+- [Deployment Guide]({{ site.baseurl }}/deployment)
 
 ### Components
-- [Frontend Components](frontend/components)
-- [Backend Services](backend/api)
-- [Database Schema](backend/models)
+- [Frontend Components]({{ site.baseurl }}/frontend/components)
+- [Backend Services]({{ site.baseurl }}/backend/api)
+- [Database Schema]({{ site.baseurl }}/backend/models)
 
 ## Contributing
 
-We welcome contributions! See our [Development Guide](guides/development) to get started.
+We welcome contributions! See our [Development Guide]({{ site.baseurl }}/guides/development) to get started.
 
 {: .warning }
 > Please read our contribution guidelines before submitting changes.
