@@ -17,36 +17,39 @@ description: Interactive visualization of the Chess Database system components a
 </script>
 
 ## Navigation
-- [Overview](#overview)
-- [High-Level Architecture](#high-level-architecture)
-- [Component Details](#component-details)
-  - [Frontend Layer](#frontend-layer)
-  - [API Layer](#api-layer)
-  - [Repository Layer](#repository-layer)
-- [Usage Guide](#usage-guide)
-  - [Navigation](#navigation-1)
-  - [Component Types](#component-types)
-  - [Documentation Links](#documentation-links)
-- [Implementation Notes](#implementation-notes)
-  - [Adding New Components](#adding-new-components)
-  - [Modifying Components](#modifying-components)
+- [Interactive System Diagram](#interactive-system-diagram)
+  - [Navigation](#navigation)
+  - [System Overview](#system-overview)
+  - [High-Level Architecture](#high-level-architecture)
+  - [Frontend Components](#frontend-components)
+    - [Frontend Layer](#frontend-layer)
+    - [API Layer](#api-layer)
+    - [Repository Layer](#repository-layer)
+  - [Component Details](#component-details)
+    - [Frontend Layer](#frontend-layer-1)
+    - [API Layer](#api-layer-1)
+    - [Documentation Links](#documentation-links)
+  - [Implementation Notes](#implementation-notes)
+    - [Adding New Components](#adding-new-components)
+    - [Modifying Components](#modifying-components)
 
-## Overview
-This document provides an interactive system diagram of the Chess Database System. Click on any component to explore its details.
+[View Architecture](architecture.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View API](api-reference.md){: .btn .fs-5 .mb-4 .mb-md-0 }
+
+---
+
+## System Overview
 
 ## High-Level Architecture
 <div class="mermaid-wrapper">
 <pre class="mermaid">
 graph TB
-    %% Main Components
     Client[Client Layer]
-    Frontend[Frontend Layer]
     API[API Layer]
     Repository[Repository Layer]
-    DB[(Database Layer)]
+    DB[Database Layer]
     
-    %% Frontend Components
-    subgraph Frontend[Frontend Layer]
+    subgraph "Frontend Layer"
         UI[UI Components]
         State[State Management]
         Services[Frontend Services]
@@ -54,16 +57,14 @@ graph TB
         Logger[Logging]
     end
     
-    %% API Components
-    subgraph API[API Layer]
+    subgraph "API Layer"
         Routes[API Routes]
         Middleware[Middleware Stack]
         Validation[Request Validation]
         Error[Error Handling]
     end
     
-    %% Repository Components
-    subgraph Repository[Repository Layer]
+    subgraph "Repository Layer"
         GameRepo[Game Repository]
         PlayerRepo[Player Repository]
         AnalysisRepo[Analysis Repository]
@@ -71,61 +72,53 @@ graph TB
         Utils[Utilities]
     end
     
-    %% Database Components
-    subgraph DB[Database Layer]
+    subgraph "Database Layer"
         Models[Data Models]
         Cache[Cache Layer]
         Migrations[Schema Migrations]
         Backup[Backup System]
     end
     
-    %% Connections
-    Client --> Frontend
-    Frontend --> API
+    Client --> API
     API --> Repository
     Repository --> DB
     
-    %% Click Actions
-    click Frontend "frontend/components.md" "View Frontend Documentation"
+    click Client "frontend/components.md" "View Frontend Documentation"
     click API "backend/api.md" "View API Documentation"
     click Repository "backend/repository.md" "View Repository Documentation"
     click DB "backend/models.md" "View Database Documentation"
 </pre>
 </div>
 
-## Component Details
+## Frontend Components
 
 ### Frontend Layer
 <div class="mermaid-wrapper">
 <pre class="mermaid">
 graph TB
-    %% UI Components
     subgraph UI[UI Components]
-        Games[Chess Games Viewer]
-        Analysis[Analysis Interface]
+        Board[Chess Board]
+        Games[Games Viewer]
+        Analysis[Analysis Tools]
         Players[Player Management]
     end
     
-    %% State Management
     subgraph State[State Management]
-        GameState[Game State]
-        AnalysisState[Analysis State]
-        UIState[UI State]
+        Store[Redux Store]
+        Actions[Actions]
+        Reducers[Reducers]
     end
     
-    %% Services
-    subgraph Services[Frontend Services]
-        GameService[Game Service]
-        AnalysisService[Analysis Service]
-        PlayerService[Player Service]
+    subgraph Services[API Services]
+        GameAPI[Game Service]
+        PlayerAPI[Player Service]
+        AnalysisAPI[Analysis Service]
     end
     
-    %% Connections
     UI --> State
     State --> Services
-    Services --> API
     
-    %% Click Actions
+    click Board "frontend/components.md#chessboard" "View Board Documentation"
     click Games "frontend/components.md#chessgamesviewer" "View Games Viewer Documentation"
     click Analysis "frontend/components.md#chessanalysis" "View Analysis Documentation"
     click Players "frontend/components.md#playersearch" "View Player Management Documentation"
@@ -136,32 +129,27 @@ graph TB
 <div class="mermaid-wrapper">
 <pre class="mermaid">
 graph LR
-    %% API Routes
     subgraph Routes[API Routes]
         GameRoutes[Game Routes]
         PlayerRoutes[Player Routes]
         AnalysisRoutes[Analysis Routes]
     end
     
-    %% Middleware
-    subgraph Middleware[Middleware Stack]
-        Auth[Authentication]
-        Metrics[Metrics Collection]
-        Cache[Caching]
+    subgraph Handlers[Request Handlers]
+        GameHandler[Game Handler]
+        PlayerHandler[Player Handler]
+        AnalysisHandler[Analysis Handler]
     end
     
-    %% Validation
-    subgraph Validation[Request Validation]
-        Schema[Schema Validation]
-        Business[Business Rules]
+    subgraph Repositories[Data Access]
+        GameRepo[Game Repository]
+        PlayerRepo[Player Repository]
+        AnalysisRepo[Analysis Repository]
     end
     
-    %% Connections
-    Routes --> Middleware
-    Middleware --> Validation
-    Validation --> Repository
+    Routes --> Handlers
+    Handlers --> Repositories
     
-    %% Click Actions
     click GameRoutes "backend/api.md#game-operations" "View Game API Documentation"
     click PlayerRoutes "backend/api.md#player-operations" "View Player API Documentation"
     click AnalysisRoutes "backend/api.md#analysis-operations" "View Analysis API Documentation"
@@ -206,17 +194,17 @@ graph TB
 </pre>
 </div>
 
-## Usage Guide
+## Component Details
 
-### Navigation
-1. Click on any component in the diagrams to view its detailed documentation
-2. Use the layer diagrams to understand component relationships
-3. Follow the connections to trace data flow
+### Frontend Layer
+- **UI Components**: React-based chess interface components
+- **State Management**: Redux store for application state
+- **API Services**: TypeScript service classes for API communication
 
-### Component Types
-- **Boxes**: Represent system components or modules
-- **Subgraphs**: Group related components
-- **Arrows**: Show data flow and dependencies
+### API Layer
+- **Routes**: FastAPI endpoint definitions
+- **Middleware**: Request processing and validation
+- **Handlers**: Business logic implementation
 
 ### Documentation Links
 - [Architecture Overview](architecture.md): High-level system design and patterns

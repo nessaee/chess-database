@@ -17,6 +17,7 @@ description: A powerful system for analyzing chess games and tracking player sta
 The Chess Database is a powerful system for analyzing chess games and tracking player statistics. This documentation will help you understand, use, and contribute to the project.
 
 {: .fs-6 .fw-300 }
+Built with modern technologies and designed for scalability.
 
 [Get Started](guides/setup.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
@@ -96,7 +97,6 @@ graph TB
 
 ## Documentation Structure
 
-{: .note }
 The documentation is organized into several key sections:
 
 ### Core Concepts
@@ -120,18 +120,3 @@ We welcome contributions! See our [Development Guide](guides/development.md) to 
 
 {: .warning }
 > Please read our contribution guidelines before submitting changes.
-
-## Support
-
-Need help? Here's what you can do:
-
-1. Search the documentation using the search bar above
-2. Check our [GitHub Issues](https://github.com/nessaee/chess-database/issues)
-3. Create a new issue with details about your problem
-
----
-
-{: .note-title }
-> Latest Updates
->
-> Check our [GitHub repository](https://github.com/nessaee/chess-database) for the latest changes and releases.

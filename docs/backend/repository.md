@@ -17,137 +17,169 @@
 
 ## Overview
 
-The repository layer implements the data access patterns and business logic for the Chess Database System.
+The repository layer implements data access patterns and business logic using SQLAlchemy. Each domain has its own repository with specialized operations.
 
 ## Domain Repositories
 
 ### Game Repository
 
-#### Core Functionality
-- **Game CRUD Operations**
-  - Create new games
-  - Retrieve games by various criteria
-  - Update game metadata
-  - Delete games with referential integrity
+Handles chess game storage and retrieval:
 
-- **Move History Management**
-  - Move sequence storage
-  - Position indexing
-  - Move validation
-  - PGN parsing and generation
-
-- **Game State Tracking**
-  - Current position
-  - Move number
-  - Time control status
-  - Game result
-
-- **Position Indexing**
-  - FEN string indexing
-  - Position hash calculation
-  - Quick position lookup
-  - Similar position finding
-
-#### Implementation Details
 ```python
-class GameRepository:
-    async def create_game(self, game: GameCreate) -> GameDB
-    async def get_game(self, game_id: UUID) -> Optional[GameDB]
-    async def update_game(self, game_id: UUID, game: GameUpdate) -> GameDB
-    async def delete_game(self, game_id: UUID) -> bool
-    async def find_games(self, filters: GameFilters) -> List[GameDB]
-    async def get_game_moves(self, game_id: UUID) -> List[Move]
+class GameRepository(BaseRepository):
+    def __init__(self, session: Session):
+        super().__init__(session)
+        self.model = Game
+
+    async def create_from_pgn(self, pgn: str) -> Game:
+        """Create game from PGN format"""
+        game_data = self._parse_pgn(pgn)
+        return await self.create(game_data)
+
+    async def get_with_analysis(self, id: UUID) -> Optional[Game]:
+        """Get game with analysis data"""
+        query = (
+            select(Game)
+            .options(joinedload(Game.analysis))
+            .where(Game.id == id)
+        )
+        return await self.session.execute(query)
+
+    async def list_by_player(
+        self,
+        player_id: UUID,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Game]:
+        """Get games by player"""
+        query = (
+            select(Game)
+            .where(or_(
+                Game.white_id == player_id,
+                Game.black_id == player_id
+            ))
+            .offset(skip)
+            .limit(limit)
+        )
+        return await self.session.execute(query)
 ```
 
 ### Player Repository
 
-#### Core Functionality
-- **Profile Management**
-  - Player registration
-  - Profile updates
-  - Account status
-  - Preferences management
+Manages player data and statistics:
 
-- **Rating Management**
-  - Rating calculation
-  - Rating history
-  - Performance tracking
-  - Rating adjustments
-
-- **Statistics Tracking**
-  - Win/loss records
-  - Opening statistics
-  - Performance metrics
-  - Historical trends
-
-#### Implementation Details
 ```python
-class PlayerRepository:
-    async def create_player(self, player: PlayerCreate) -> PlayerDB
-    async def get_player(self, player_id: UUID) -> Optional[PlayerDB]
-    async def update_player(self, player_id: UUID, player: PlayerUpdate) -> PlayerDB
-    async def get_player_stats(self, player_id: UUID) -> PlayerStats
-    async def get_rating_history(self, player_id: UUID) -> List[RatingPoint]
+class PlayerRepository(BaseRepository):
+    def __init__(self, session: Session):
+        super().__init__(session)
+        self.model = Player
+
+    async def get_statistics(self, id: UUID) -> Dict:
+        """Calculate player statistics"""
+        stats = await self._calculate_stats(id)
+        return stats
+
+    async def search(
+        self,
+        query: str,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Player]:
+        """Search players by name"""
+        query = (
+            select(Player)
+            .where(Player.name.ilike(f"%{query}%"))
+            .offset(skip)
+            .limit(limit)
+        )
+        return await self.session.execute(query)
+
+    async def update_rating(
+        self,
+        id: UUID,
+        new_rating: int
+    ) -> Optional[Player]:
+        """Update player rating"""
+        return await self.update(id, {"rating": new_rating})
 ```
 
 ### Analysis Repository
 
-#### Core Functionality
-- **Position Analysis**
-  - Engine evaluation
-  - Best move calculation
-  - Position assessment
-  - Line analysis
+Handles game analysis and position evaluation:
 
-- **Analysis Storage**
-  - Evaluation caching
-  - Analysis versioning
-  - Batch processing
-  - Result aggregation
-
-- **Cache Management**
-  - Cache invalidation
-  - Priority queueing
-  - Storage optimization
-  - Update strategies
-
-#### Implementation Details
 ```python
-class AnalysisRepository:
-    async def create_analysis(self, analysis: AnalysisCreate) -> AnalysisDB
-    async def get_position_analysis(self, fen: str) -> Optional[AnalysisDB]
-    async def update_analysis(self, analysis_id: UUID, analysis: AnalysisUpdate) -> AnalysisDB
-    async def get_game_analysis(self, game_id: UUID) -> List[AnalysisDB]
+class AnalysisRepository(BaseRepository):
+    def __init__(self, session: Session):
+        super().__init__(session)
+        self.model = GameAnalysis
+
+    async def create_game_analysis(
+        self,
+        game_id: UUID,
+        analysis_data: Dict
+    ) -> GameAnalysis:
+        """Create analysis for a game"""
+        analysis = await self.create({
+            "game_id": game_id,
+            **analysis_data
+        })
+        return analysis
+
+    async def get_critical_positions(
+        self,
+        game_id: UUID
+    ) -> List[Dict]:
+        """Get critical positions from analysis"""
+        analysis = await self.get_by_game_id(game_id)
+        return analysis.critical_positions if analysis else []
+
+    async def store_position_evaluation(
+        self,
+        fen: str,
+        evaluation: float,
+        best_moves: List[str],
+        depth: int
+    ) -> PositionAnalysis:
+        """Store position analysis"""
+        position = PositionAnalysis(
+            fen=fen,
+            evaluation=evaluation,
+            best_moves=best_moves,
+            depth=depth
+        )
+        self.session.add(position)
+        await self.session.commit()
+        return position
 ```
 
 ### Opening Repository
 
-#### Core Functionality
-- **Opening Classification**
-  - ECO code assignment
-  - Opening recognition
-  - Variation tracking
-  - Position classification
+Manages opening theory and classification:
 
-- **Statistical Analysis**
-  - Win rate calculation
-  - Popular variations
-  - Player preferences
-  - Historical trends
-
-- **Tree Management**
-  - Opening tree construction
-  - Position linking
-  - Variation merging
-  - Tree traversal
-
-#### Implementation Details
 ```python
-class OpeningRepository:
-    async def get_opening(self, eco_code: str) -> Optional[OpeningDB]
-    async def classify_position(self, fen: str) -> Optional[OpeningClassification]
-    async def get_statistics(self, eco_code: str) -> OpeningStats
-    async def get_variations(self, eco_code: str) -> List[OpeningVariation]
+class OpeningRepository(BaseRepository):
+    def __init__(self, session: Session):
+        super().__init__(session)
+        self.model = Opening
+
+    async def find_by_moves(
+        self,
+        moves: List[str]
+    ) -> Optional[Opening]:
+        """Find opening by move sequence"""
+        query = (
+            select(Opening)
+            .where(Opening.moves["moves"].contains(moves))
+        )
+        return await self.session.execute(query)
+
+    async def get_variations(
+        self,
+        eco: str
+    ) -> List[Dict]:
+        """Get opening variations"""
+        opening = await self.get_by_eco(eco)
+        return opening.variations if opening else []
 ```
 
 ## Common Components

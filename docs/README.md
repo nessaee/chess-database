@@ -6,7 +6,7 @@ description: Comprehensive documentation for the Chess Database System
 
 # Chess Database System Documentation
 
-Welcome to the Chess Database System documentation. This documentation provides comprehensive information about the system's architecture, API endpoints, data models, and deployment procedures.
+# Chess Database Documentation
 
 ## Quick Links
 
@@ -24,11 +24,9 @@ Welcome to the Chess Database System documentation. This documentation provides 
    - Middleware stack
    - Security features
 
-2. [API Reference](api-reference.md)
-   - Endpoint documentation
-   - Request/response formats
-   - Query parameters
-   - Authentication
+1. [Quick Start Guide](guides/quickstart.md)
+2. [Development Setup](guides/setup.md)
+3. [API Overview](api-reference.md)
 
 3. [Data Models](backend/models.md)
    - Database schema
@@ -74,8 +72,23 @@ Welcome to the Chess Database System documentation. This documentation provides 
 
 ## Contributing
 
-When contributing to this project, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
+We welcome contributions to improve the Chess Database system. Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+For more details, see our [Contributing Guide](CONTRIBUTING.md).
 
 ## Support
 
-For support, please open an issue in the repository or contact the development team.
+If you need help or have questions:
+
+1. Check the [FAQ](guides/faq.md)
+2. Search existing [Issues](https://github.com/nessaee/chess-database/issues)
+3. Create a new issue if needed
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -18,7 +18,7 @@
 
 ## Overview
 
-This document details the REST API endpoints provided by the Chess Database System. All endpoints are prefixed with `/api`.
+The Chess Database backend is built using FastAPI, providing a modern, fast, and type-safe API for chess game analysis and player statistics. All endpoints are documented using OpenAPI/Swagger and are accessible through `/docs` or `/redoc`.
 
 ## API Structure
 
@@ -57,6 +57,25 @@ async def get_game(
     """Retrieve a specific game by ID"""
 ```
 
+##### PUT /api/games/{game_id}
+```python
+@router.put("/games/{game_id}")
+async def update_game(
+    game_id: UUID,
+    game: GameUpdate
+) -> Game:
+    """Update game information"""
+```
+
+##### DELETE /api/games/{game_id}
+```python
+@router.delete("/games/{game_id}")
+async def delete_game(
+    game_id: UUID
+) -> None:
+    """Remove a game from the database"""
+```
+
 ### Player Operations
 
 #### Endpoints
@@ -82,18 +101,47 @@ async def create_player(
     """Create a new player profile"""
 ```
 
-##### GET /api/players/{player_id}/stats
+##### GET /api/players/{player_id}
 ```python
-@router.get("/players/{player_id}/stats")
-async def get_player_stats(
+@router.get("/players/{player_id}")
+async def get_player(
     player_id: UUID
-) -> PlayerStats:
-    """Retrieve player statistics"""
+) -> Player:
+    """Retrieve a specific player by ID"""
+```
+
+##### PUT /api/players/{player_id}
+```python
+@router.put("/players/{player_id}")
+async def update_player(
+    player_id: UUID,
+    player: PlayerUpdate
+) -> Player:
+    """Update player information"""
+```
+
+##### DELETE /api/players/{player_id}
+```python
+@router.delete("/players/{player_id}")
+async def delete_player(
+    player_id: UUID
+) -> None:
+    """Remove a player profile"""
 ```
 
 ### Analysis Operations
 
 #### Endpoints
+
+##### POST /api/analysis/position
+```python
+@router.post("/analysis/position")
+async def analyze_position(
+    fen: str,
+    depth: int = 20
+) -> PositionAnalysis:
+    """Analyze a specific position"""
+```
 
 ##### POST /api/analysis/game/{game_id}
 ```python
@@ -102,17 +150,16 @@ async def analyze_game(
     game_id: UUID,
     depth: int = 20
 ) -> GameAnalysis:
-    """Analyze a complete game"""
+    """Analyze an entire game"""
 ```
 
-##### GET /api/analysis/position
+##### GET /api/analysis/game/{game_id}
 ```python
-@router.get("/analysis/position")
-async def analyze_position(
-    fen: str,
-    depth: int = 20
-) -> PositionAnalysis:
-    """Analyze a specific position"""
+@router.get("/analysis/game/{game_id}")
+async def get_game_analysis(
+    game_id: UUID
+) -> GameAnalysis:
+    """Get existing analysis for a game"""
 ```
 
 ### Database Operations
@@ -126,11 +173,18 @@ async def check_health() -> HealthStatus:
     """Check database health status"""
 ```
 
+##### POST /api/database/backup
+```python
+@router.post("/database/backup")
+async def backup_database() -> None:
+    """Trigger database backup"""
+```
+
 ##### GET /api/database/stats
 ```python
 @router.get("/database/stats")
 async def get_stats() -> DatabaseStats:
-    """Retrieve database statistics"""
+    """Get database statistics"""
 ```
 
 ## Request/Response Models

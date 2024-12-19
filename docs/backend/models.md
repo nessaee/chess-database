@@ -16,7 +16,7 @@
 
 ## Overview
 
-This document describes the database models and their relationships in the Chess Database System.
+The Chess Database uses SQLAlchemy for object-relational mapping with PostgreSQL. Models are organized into distinct domains: Game, Player, Analysis, and Opening.
 
 ## Core Models
 
@@ -26,30 +26,25 @@ This document describes the database models and their relationships in the Chess
 class GameDB(Base):
     __tablename__ = "games"
     
-    id = Column(Integer, primary_key=True, index=True)
-    white_player_id = Column(Integer, ForeignKey("players.id"))
-    black_player_id = Column(Integer, ForeignKey("players.id"))
-    white_elo = Column(SmallInteger, nullable=True)
-    black_elo = Column(SmallInteger, nullable=True)
-    date = Column(Date)
-    result = Column(SmallInteger)  # 2-bit result encoding
-    eco = Column(String(3))
-```
-
-#### Result Encoding
-```python
-RESULT_UNKNOWN = 0  # '*'
-RESULT_DRAW = 1     # '1/2-1/2'
-RESULT_WHITE = 2    # '1-0'
-RESULT_BLACK = 3    # '0-1'
+    id = Column(UUID, primary_key=True, default=uuid4)
+    white_id = Column(UUID, ForeignKey("players.id"))
+    black_id = Column(UUID, ForeignKey("players.id"))
+    result = Column(String)
+    moves = Column(JSONB)
+    metadata = Column(JSONB)
+    
+    # Relationships
+    white = relationship("Player", foreign_keys=[white_id])
+    black = relationship("Player", foreign_keys=[black_id])
+    analysis = relationship("GameAnalysis", back_populates="game")
 ```
 
 #### Response Model
 ```python
 class GameResponse(BaseModel):
-    id: int
-    white_player_id: int
-    black_player_id: int
+    id: UUID
+    white_id: UUID
+    black_id: UUID
     white_player: Optional[PlayerInGame]
     black_player: Optional[PlayerInGame]
     date: Optional[date]
@@ -68,18 +63,26 @@ class GameResponse(BaseModel):
 class PlayerDB(Base):
     __tablename__ = "players"
     
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, unique=True)
+    id = Column(UUID, primary_key=True, default=uuid4)
+    name = Column(String, nullable=False)
+    rating = Column(Integer)
+    title = Column(String)
+    federation = Column(String)
+    metadata = Column(JSONB)
+    
+    # Relationships
+    white_games = relationship("Game", foreign_keys=[Game.white_id])
+    black_games = relationship("Game", foreign_keys=[Game.black_id])
 ```
 
 #### Response Models
 ```python
 class PlayerResponse(BaseModel):
-    id: int
+    id: UUID
     name: str
 
 class PlayerSearchResponse(BaseModel):
-    id: int
+    id: UUID
     name: str
     elo: Optional[int]
 
@@ -126,7 +129,7 @@ class OpeningAnalysisResponse(BaseModel):
 #### Detailed Performance
 ```python
 class DetailedPerformanceResponse(BaseModel):
-    player_id: int
+    player_id: UUID
     total_games: int
     win_rate: float
     draw_rate: float
