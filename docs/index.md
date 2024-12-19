@@ -26,55 +26,57 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 
 The Chess Database is a full-stack application built with modern technologies:
 
-```mermaid
-%%{init: {'theme': 'neutral' }}%%
-graph LR
-    %% Main Components
-    Frontend[React Frontend]
-    Backend[FastAPI Backend]
-    DB[(PostgreSQL)]
-    Analysis[Analysis Engine]
-
-    %% Frontend Components
-    subgraph "Frontend Components"
-        GameViewer[Game Viewer]
-        AnalysisTools[Analysis Tools]
-        PlayerStats[Player Stats]
+<div class="mermaid-wrapper">
+<div class="mermaid">
+graph TB
+    %% System Overview
+    subgraph Frontend["Frontend Layer"]
+        UI["User Interface"]
+        STATE["State Management"]
+        SERVICES["API Services"]
     end
-
-    %% Backend Services
-    subgraph "Backend Services"
-        GameService[Game Service]
-        PlayerService[Player Service]
-        AnalysisService[Analysis Service]
+    
+    subgraph Backend["Backend Layer"]
+        API["API Gateway"]
+        AUTH["Authentication"]
+        HANDLERS["Request Handlers"]
     end
-
-    %% Connections
-    Frontend --> |REST API| Backend
-    Backend --> DB
-    Backend --> Analysis
     
-    %% Frontend Internal
-    Frontend --> GameViewer
-    Frontend --> AnalysisTools
-    Frontend --> PlayerStats
+    subgraph Data["Data Layer"]
+        CACHE["Redis Cache"]
+        DB["PostgreSQL"]
+        MODELS["Data Models"]
+    end
     
-    %% Backend Internal
-    Backend --> GameService
-    Backend --> PlayerService
-    Backend --> AnalysisService
-
+    %% Relationships
+    UI --> STATE
+    STATE --> SERVICES
+    SERVICES --> API
+    
+    API --> AUTH
+    AUTH --> HANDLERS
+    HANDLERS --> CACHE
+    HANDLERS --> DB
+    
+    DB --> MODELS
+    MODELS --> HANDLERS
+    CACHE --> HANDLERS
+    
     %% Styling
-    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px
-    classDef backend fill:#009688,stroke:#333,stroke-width:2px
-    classDef database fill:#336791,stroke:#333,stroke-width:2px
-    classDef analysis fill:#FFA726,stroke:#333,stroke-width:2px
+    classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef backend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     
-    class Frontend frontend
-    class Backend backend
-    class DB database
-    class Analysis analysis
-```
+    class UI,STATE,SERVICES frontend;
+    class API,AUTH,HANDLERS backend;
+    class CACHE,DB,MODELS data;
+    
+    %% Group Styling
+    style Frontend fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Backend fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Data fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 ## Key Features
 

@@ -2,7 +2,8 @@
 
 This document details the optimization strategies implemented across different layers of the Chess Database system.
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph TB
     subgraph "System Layers"
         Frontend["Frontend Layer"]
@@ -24,7 +25,21 @@ graph TB
     DB --> Query
     DB --> Conn
     DB --> Monitor
-```
+    
+    %% Styling
+    classDef frontend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef api fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    
+    class Frontend frontend;
+    class API api;
+    class DB db;
+    
+    %% Group Styling
+    style System Layers fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Optimization Types fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 ## Database Layer Optimizations
 
@@ -65,7 +80,8 @@ The system employs materialized views for computationally intensive queries that
    - Includes position evaluation statistics
    - Optimized for opening explorer queries
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph LR
     subgraph "Query Optimization"
         MV["Materialized Views"]
@@ -87,7 +103,19 @@ graph LR
     MV --> PS
     MV --> OA
     MV --> MC
-```
+    
+    %% Styling
+    classDef query fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef view fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class MV,IDX,PART,CACHE query;
+    class PS,OA,MC view;
+    
+    %% Group Styling
+    style Query Optimization fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style View Types fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 #### Index Strategy
 Carefully designed indexes balance query performance with maintenance overhead:
@@ -166,7 +194,8 @@ Timeout configurations:
 - MEDIUM: 5 minutes (semi-stable data)
 - LONG: 1 hour (stable data)
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph TB
     subgraph "Cache Levels"
         L1["Browser Cache"]
@@ -182,7 +211,16 @@ graph TB
     L4 -->|update| L3
     L3 -->|update| L2
     L2 -->|update| L1
-```
+    
+    %% Styling
+    classDef cache fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    
+    class L1,L2,L3,L4 cache;
+    
+    %% Group Styling
+    style Cache Levels fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 #### Cache Invalidation Strategy
 ```javascript
@@ -238,7 +276,8 @@ async def optimize_response(request: Request, call_next):
     return response
 ```
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 sequenceDiagram
     participant C as Client
     participant M as Middleware
@@ -252,7 +291,19 @@ sequenceDiagram
     D-->>H: Return Results
     H-->>M: Format Response
     M-->>C: HTTP Response
-```
+    
+    %% Styling
+    classDef client fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef middleware fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef handler fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef database fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    
+    class C client;
+    class M middleware;
+    class H handler;
+    class D database;
+</div>
+</div>
 
 #### Response Transformation
 ```python
@@ -292,7 +343,8 @@ def track_query_performance():
         metrics.record_query_duration(duration)
 ```
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph TB
     subgraph "Metrics Collection"
         QM["Query Metrics"]
@@ -314,7 +366,19 @@ graph TB
     
     ALERT --> DASH
     LOG --> DASH
-```
+    
+    %% Styling
+    classDef metrics fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef monitoring fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class QM,PM,RM,AM metrics;
+    class ALERT,DASH,LOG monitoring;
+    
+    %% Group Styling
+    style Metrics Collection fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Monitoring Systems fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 #### Health Check Implementation
 ```python

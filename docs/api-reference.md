@@ -6,7 +6,8 @@ description: Comprehensive documentation of the Chess Database API endpoints
 
 # API Reference
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph LR
     subgraph "API Endpoints"
         GAMES["/games"]
@@ -27,7 +28,17 @@ graph LR
     GET --> PLAYERS
     GET --> ANALYSIS
     GET --> METRICS
-```
+    
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef http fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class GAMES,PLAYERS,ANALYSIS,METRICS endpoint;
+    class GET,POST,PUT,DELETE http;
+    
+    style "API Endpoints" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style "HTTP Methods" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 ## Overview
 
@@ -111,7 +122,8 @@ Authorization: Bearer YOUR_API_KEY
 
 ## Endpoint Structure
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph TB
     subgraph "Games API"
         G["/games"]
@@ -145,11 +157,21 @@ graph TB
     A --> AG
     A --> AP
     A --> AO
-```
+    
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    
+    class G,GID,GP,GR,P,PID,PS,PP,A,AG,AP,AO endpoint;
+    
+    style "Games API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style "Players API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style "Analysis API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</div>
+</div>
 
 ## Request/Response Flow
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 sequenceDiagram
     participant C as Client
     participant M as Middleware
@@ -164,11 +186,25 @@ sequenceDiagram
     D-->>H: Query Result
     H-->>M: Format Response
     M-->>C: HTTP Response
-```
+    
+    classDef client fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef middleware fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef validator fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef handler fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef database fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    
+    class C client;
+    class M middleware;
+    class V validator;
+    class H handler;
+    class D database;
+</div>
+</div>
 
 ## Authentication Flow
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 sequenceDiagram
     participant C as Client
     participant A as Auth
@@ -188,11 +224,23 @@ sequenceDiagram
     else Invalid Credentials
         A-->>C: Auth Error
     end
-```
+    
+    classDef client fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef api fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef database fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    
+    class C client;
+    class A auth;
+    class API api;
+    class D database;
+</div>
+</div>
 
 ## Error Handling
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph TB
     subgraph "Error Types"
         VAL["Validation Error"]
@@ -214,11 +262,23 @@ graph TB
     
     MID --> LOG
     MID --> RESP
-```
+    
+    classDef error fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef middleware fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef logger fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef response fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    
+    class VAL,AUTH,DB,SYS error;
+    class MID middleware;
+    class LOG logger;
+    class RESP response;
+</div>
+</div>
 
 ## Rate Limiting
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 graph LR
     subgraph "Rate Limit Components"
         CHECK["Limit Checker"]
@@ -232,7 +292,12 @@ graph LR
     
     CHECK -->|Allow| Handler
     CHECK -->|Block| Error
-```
+    
+    classDef component fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    
+    class CHECK,STORE,POLICY component;
+</div>
+</div>
 
 ## Response Format
 
@@ -287,7 +352,8 @@ The current API version is specified in the configuration. Version information i
 
 ### Games API
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 classDiagram
     class GameEndpoint {
         +GET /games
@@ -308,11 +374,19 @@ classDiagram
     }
     
     GameEndpoint -- GameResponse
-```
+    
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef response fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class GameEndpoint endpoint;
+    class GameResponse response;
+</div>
+</div>
 
 ### Players API
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 classDiagram
     class PlayerEndpoint {
         +GET /players
@@ -330,11 +404,19 @@ classDiagram
     }
     
     PlayerEndpoint -- PlayerResponse
-```
+    
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef response fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class PlayerEndpoint endpoint;
+    class PlayerResponse response;
+</div>
+</div>
 
 ### Analysis API
 
-```mermaid
+<div class="mermaid-wrapper">
+<div class="mermaid">
 classDiagram
     class AnalysisEndpoint {
         +GET /analysis/game/{id}
@@ -350,4 +432,11 @@ classDiagram
     }
     
     AnalysisEndpoint -- AnalysisResponse
-```
+    
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef response fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    
+    class AnalysisEndpoint endpoint;
+    class AnalysisResponse response;
+</div>
+</div>
