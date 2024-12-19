@@ -12,10 +12,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Result mapping constants
-RESULT_UNKNOWN = 0  # '*'
-RESULT_DRAW = 1     # '1/2-1/2'
-RESULT_WHITE = 2    # '1-0'
-RESULT_BLACK = 3    # '0-1'
+RESULT_UNKNOWN = 3  # '*'
+RESULT_DRAW = 2     # '1/2-1/2'
+RESULT_WHITE = 1   # '1-0'
+RESULT_BLACK = 0    # '0-1'
 
 def decode_result(result_bits: int) -> str:
     """Convert 2-bit result to string representation."""
