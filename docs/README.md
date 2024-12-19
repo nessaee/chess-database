@@ -13,6 +13,7 @@ description: Comprehensive documentation for the Chess Database System
 - [System Overview](index.md)
 - [Interactive System Diagram](system-diagram.md)
 - [API Reference](api-reference.md)
+- [Feature Demos](demos.md)
 - [Optimizations](optimizations.md)
 
 ## Documentation Structure
@@ -51,6 +52,13 @@ description: Comprehensive documentation for the Chess Database System
    - Environment setup
    - Docker deployment
    - Development setup
+
+## Feature Demonstrations
+
+See our [Feature Demos](demos.md) page for visual guides on:
+- Game analysis interface
+- Player statistics tracking
+- Database metrics and monitoring
 
 ## Development Guides
 

@@ -20,7 +20,7 @@ This page contains animated demonstrations of the main features and workflows.
 
 ## Game Analysis
 
-![Game View Demo](assets/demos/game-analysis.gif)
+![Game View Demo](assets/demos/game.gif)
 
 The game analysis interface allows you to:
 - Review games move by move

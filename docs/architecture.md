@@ -94,6 +94,192 @@ graph TB
 </pre>
 </div>
 
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph Client Layer
+        A[React Frontend]
+        B[Chess Board Component]
+        C[Analysis UI]
+    end
+
+    subgraph API Layer
+        D[FastAPI Server]
+        E[Game Service]
+        F[Analysis Service]
+        G[Player Service]
+    end
+
+    subgraph Data Layer
+        H[(PostgreSQL)]
+        I[Materialized Views]
+    end
+
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+    D --> E
+    D --> F
+    D --> G
+    E --> H
+    F --> H
+    G --> H
+    E --> I
+    F --> I
+    G --> I
+
+    style A fill:#61DAFB,stroke:#333
+    style D fill:#009688,stroke:#333
+    style H fill:#336791,stroke:#333
+```
+
+## Core Components
+
+### Frontend Layer
+{: .text-delta }
+
+1. **React Application**
+   - Built with Vite for fast development
+   - Uses Tailwind CSS for styling
+   - Implements responsive design
+
+2. **Chess Components**
+   - Interactive chess board
+   - Move validation
+   - PGN viewer
+
+3. **Analysis Interface**
+   - Position evaluation
+   - Opening explorer
+   - Game statistics
+
+### API Layer
+{: .text-delta }
+
+1. **FastAPI Server**
+   - RESTful API endpoints
+   - WebSocket support
+   - Authentication middleware
+
+2. **Service Layer**
+   - Game management
+   - Player statistics
+   - Position analysis
+
+3. **Middleware**
+   - Performance monitoring
+   - Error handling
+   - Rate limiting
+
+### Data Layer
+{: .text-delta }
+
+1. **PostgreSQL Database**
+   - Core Tables:
+     - games (id, white_player_id, black_player_id, white_elo, black_elo, date, eco, moves, result)
+     - players (id, name)
+     - openings (id, eco, name, moves)
+     - schema_migrations (version, applied_at)
+
+2. **Materialized Views**
+   - materialized_view_refresh_status (view_name, last_refresh, refresh_in_progress, partition_refreshed)
+   - game_opening_matches (game_id, opening_id, game_move_length, opening_move_length, partition_num)
+   - move_count_stats (actual_full_moves, number_of_games, avg_bytes, partition_distribution)
+   - endpoint_performance_stats (endpoint, method, total_calls, successful_calls, error_count, response metrics)
+   - player_opening_stats (player statistics by opening)
+   - games_with_result_str (denormalized game data with string results)
+
+## Design Principles
+
+{: .important }
+The system follows these key principles:
+
+1. **Separation of Concerns**
+   - Clear boundaries between layers
+   - Modular component design
+   - Independent scaling
+
+2. **RESTful Architecture**
+   - Stateless communication
+   - Resource-based URLs
+   - Standard HTTP methods
+
+3. **Performance First**
+   - Materialized views for fast reads
+   - Optimized queries
+   - Efficient data partitioning
+
+## Scalability
+
+The system is designed to scale horizontally:
+
+{: .note }
+- Frontend can be served through CDN
+- API servers can be load balanced
+- Database supports partitioning and replication
+
+## Database Schema
+
+```mermaid
+erDiagram
+    games {
+        uuid id
+        uuid white_player_id
+        uuid black_player_id
+        int white_elo
+        int black_elo
+        date date
+        string eco
+        text moves
+        string result
+    }
+    players {
+        uuid id
+        string name
+    }
+    openings {
+        uuid id
+        string eco
+        string name
+        text moves
+    }
+    materialized_views {
+        string view_name
+        timestamp last_refresh
+        boolean refresh_in_progress
+        int partition_refreshed
+    }
+```
+
+## Performance Monitoring
+
+The system includes comprehensive monitoring through materialized views:
+
+1. **Endpoint Metrics**
+   - Request latency
+   - Success/error rates
+   - Response sizes
+   - Call volumes
+
+2. **Game Statistics**
+   - Move counts
+   - Storage metrics
+   - Opening frequencies
+   - Player activity
+
+3. **System Health**
+   - View refresh status
+   - Partition statistics
+   - Database performance
+
+## Next Steps
+
+- [Setup Development Environment](guides/setup)
+- [API Documentation](api-reference)
+- [Component Details](frontend/components)
+
 ## Frontend Layer
 
 The frontend is implemented as a Single Page Application (SPA) using React with TypeScript, providing type safety and improved developer experience.
@@ -487,6 +673,28 @@ graph TB
     style Visualization fill:#f5f5f5,stroke:#333,stroke-width:2px;
 </pre>
 </div>
+
+## Data Storage Optimizations
+
+### Move Encoding
+The system uses a [custom binary encoding](backend/encoding.md) for chess moves that:
+- Compresses moves to 2 bytes each
+- Maintains fast access and processing
+- Reduces storage requirements by ~60-70%
+
+```mermaid
+graph LR
+    A[UCI Move] -->|Encode| B[16-bit Integer]
+    B -->|Store| C[(Database)]
+    C -->|Retrieve| D[16-bit Integer]
+    D -->|Decode| E[UCI Move]
+```
+
+The encoding system is critical for:
+- Efficient database storage
+- Fast move processing
+- Reduced network bandwidth
+- Quick position analysis
 
 ## Security Measures
 
