@@ -6,7 +6,28 @@ description: Comprehensive documentation of the Chess Database API endpoints
 
 # API Reference
 
-The Chess Database provides a RESTful API for interacting with the system. All endpoints are accessible via HTTPS and return JSON responses.
+```mermaid
+graph LR
+    subgraph "API Endpoints"
+        GAMES["/games"]
+        PLAYERS["/players"]
+        ANALYSIS["/analysis"]
+        METRICS["/metrics"]
+    end
+    
+    subgraph "HTTP Methods"
+        GET["GET"]
+        POST["POST"]
+        PUT["PUT"]
+        DELETE["DELETE"]
+    end
+    
+    GET --> GAMES
+    POST --> GAMES
+    GET --> PLAYERS
+    GET --> ANALYSIS
+    GET --> METRICS
+```
 
 ## Overview
 
@@ -88,6 +109,131 @@ Authorization: Bearer YOUR_API_KEY
 - `POST /api/database/maintenance`
   - Performs database optimization tasks
 
+## Endpoint Structure
+
+```mermaid
+graph TB
+    subgraph "Games API"
+        G["/games"]
+        GID["/games/{id}"]
+        GP["/games/player/{name}"]
+        GR["/games/recent"]
+    end
+    
+    subgraph "Players API"
+        P["/players"]
+        PID["/players/{id}"]
+        PS["/players/search"]
+        PP["/players/{id}/performance"]
+    end
+    
+    subgraph "Analysis API"
+        A["/analysis"]
+        AG["/analysis/game/{id}"]
+        AP["/analysis/position"]
+        AO["/analysis/opening"]
+    end
+    
+    G --> GID
+    G --> GP
+    G --> GR
+    
+    P --> PID
+    P --> PS
+    P --> PP
+    
+    A --> AG
+    A --> AP
+    A --> AO
+```
+
+## Request/Response Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant M as Middleware
+    participant V as Validator
+    participant H as Handler
+    participant D as Database
+    
+    C->>M: HTTP Request
+    M->>V: Validate Request
+    V->>H: Process Request
+    H->>D: Database Query
+    D-->>H: Query Result
+    H-->>M: Format Response
+    M-->>C: HTTP Response
+```
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Auth
+    participant API as API
+    participant D as Database
+    
+    C->>A: Authentication Request
+    A->>D: Validate Credentials
+    D-->>A: Validation Result
+    
+    alt Valid Credentials
+        A-->>C: JWT Token
+        C->>API: API Request + Token
+        API->>A: Validate Token
+        A-->>API: Token Valid
+        API-->>C: API Response
+    else Invalid Credentials
+        A-->>C: Auth Error
+    end
+```
+
+## Error Handling
+
+```mermaid
+graph TB
+    subgraph "Error Types"
+        VAL["Validation Error"]
+        AUTH["Auth Error"]
+        DB["Database Error"]
+        SYS["System Error"]
+    end
+    
+    subgraph "Error Handling"
+        MID["Middleware"]
+        LOG["Logger"]
+        RESP["Response"]
+    end
+    
+    VAL --> MID
+    AUTH --> MID
+    DB --> MID
+    SYS --> MID
+    
+    MID --> LOG
+    MID --> RESP
+```
+
+## Rate Limiting
+
+```mermaid
+graph LR
+    subgraph "Rate Limit Components"
+        CHECK["Limit Checker"]
+        STORE["Rate Store"]
+        POLICY["Rate Policy"]
+    end
+    
+    Request --> CHECK
+    CHECK --> STORE
+    POLICY --> CHECK
+    
+    CHECK -->|Allow| Handler
+    CHECK -->|Block| Error
+```
+
 ## Response Format
 
 All API responses follow this format:
@@ -136,3 +282,72 @@ The API includes middleware for:
 ## API Versioning
 
 The current API version is specified in the configuration. Version information is included in the API path when needed.
+
+## Endpoint Details
+
+### Games API
+
+```mermaid
+classDiagram
+    class GameEndpoint {
+        +GET /games
+        +GET /games/{id}
+        +GET /games/player/{name}
+        +POST /games
+        +PUT /games/{id}
+        +DELETE /games/{id}
+    }
+    
+    class GameResponse {
+        +id: int
+        +white_player: Player
+        +black_player: Player
+        +result: string
+        +moves: string
+        +date: date
+    }
+    
+    GameEndpoint -- GameResponse
+```
+
+### Players API
+
+```mermaid
+classDiagram
+    class PlayerEndpoint {
+        +GET /players
+        +GET /players/{id}
+        +GET /players/search
+        +GET /players/{id}/performance
+    }
+    
+    class PlayerResponse {
+        +id: int
+        +name: string
+        +rating: int
+        +games: Game[]
+        +statistics: Stats
+    }
+    
+    PlayerEndpoint -- PlayerResponse
+```
+
+### Analysis API
+
+```mermaid
+classDiagram
+    class AnalysisEndpoint {
+        +GET /analysis/game/{id}
+        +GET /analysis/position
+        +GET /analysis/opening
+    }
+    
+    class AnalysisResponse {
+        +score: float
+        +best_move: string
+        +variation: string[]
+        +statistics: Stats
+    }
+    
+    AnalysisEndpoint -- AnalysisResponse
+```
