@@ -3,7 +3,13 @@ layout: default
 title: API Reference
 description: Complete reference for the Chess Database API endpoints
 ---
-
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'light'
+	});
+</script>
 # API Reference
 
 [← Documentation Home](index.md) | [System Architecture](architecture.md)
