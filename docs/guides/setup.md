@@ -20,7 +20,7 @@ Before starting, ensure you have:
 - [ ] Docker Compose (v2.0.0 or higher)
 - [ ] Git
 - [ ] At least 4GB of free disk space
-- [ ] Ports 5173, 5000, and 5433 available
+- [ ] Ports 5173, 5000, and 5432 available
 
 ### Development Tools (Optional)
 - Visual Studio Code (recommended)
@@ -42,30 +42,31 @@ Create two environment files in the `src` directory:
 # src/.env.db
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=chesspass
-POSTGRES_DB=chess
+POSTGRES_DB=chess-test
+POSTGRES_PORT=5432
 ```
 
 ```bash
 # src/.env.backend
-DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess
+DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess-test
+API_BASE_URL=http://localhost:5000
+DB_HOST=db
+CACHE_TTL=3600
+LOG_FILE=app.log
+LOG_LEVEL=INFO
+RATE_LIMIT=100
 ```
 
 > ⚠️ **Note**: Never commit these .env files to version control. Add them to your .gitignore file.
 
 ### 3. Initialize Docker Environment
 ```bash
-cd src/init
-chmod +x docker_init.sh
-./docker_init.sh path/to/backup.gz
-```
+# Start all services
+docker-compose up -d
 
-This script will:
-- Check prerequisites
-- Clean up existing containers
-- Build and start containers
-- Initialize the database
-- Restore from backup (if provided)
-- Run migrations
+# View logs
+docker-compose logs -f
+```
 
 ### 4. Verify Services
 After initialization, verify that all services are running:
@@ -85,28 +86,24 @@ chess-db-frontend   "npm run dev"            frontend           running
 ## Configuration
 
 ### Database Settings
+The database configuration is stored in `.env.db`:
 ```env
-# src/.env.db
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=chesspass
-POSTGRES_DB=chess
-POSTGRES_PORT=5433
+POSTGRES_DB=chess-test
+POSTGRES_PORT=5432
 ```
 
 ### Backend Settings
+The backend configuration is stored in `.env.backend`:
 ```env
-# src/.env.backend
-DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess
-API_HOST=0.0.0.0
-API_PORT=5000
-DEBUG=True
-```
-
-### Frontend Settings
-```env
-# src/.env.frontend
-VITE_API_URL=http://localhost:5000
-VITE_WS_URL=ws://localhost:5000/ws
+DATABASE_URL=postgresql+asyncpg://postgres:chesspass@db:5432/chess-test
+API_BASE_URL=http://localhost:5000
+DB_HOST=db
+CACHE_TTL=3600
+LOG_FILE=app.log
+LOG_LEVEL=INFO
+RATE_LIMIT=100
 ```
 
 ## Development Setup
@@ -148,9 +145,11 @@ docker-compose -f docker-compose.prod.yml build
 ### 2. Configure Production Environment
 Copy and edit production environment files:
 ```bash
-cp .env.prod.example .env.prod
-cp .env.db.prod.example .env.db.prod
+cp .env.backend .env.backend.prod
+cp .env.db .env.db.prod
 ```
+
+Edit the production environment files with appropriate values for your production environment.
 
 ### 3. Deploy Services
 ```bash
@@ -167,7 +166,7 @@ docker-compose -f docker-compose.prod.yml up -d
 docker-compose logs db
 
 # Verify connection
-docker-compose exec db psql -U postgres -d chess
+docker-compose exec db psql -U postgres -d chess-test
 ```
 
 #### Service Health Checks
@@ -182,20 +181,8 @@ docker-compose exec db pg_isready
 docker-compose logs -f
 ```
 
-### Backup and Recovery
-
-#### Create Backup
-```bash
-./scripts/backup.sh
-```
-
-#### Restore from Backup
-```bash
-./scripts/restore.sh path/to/backup.gz
-```
-
 ## Next Steps
 - [Development Guide](development.md)
-- [API Documentation](../design/backend/api.md)
-- [Frontend Guide](../design/frontend/components.md)
+- [API Documentation](../backend/api.md)
+- [Frontend Guide](../frontend/components.md)
 - [Deployment Guide](deployment.md)

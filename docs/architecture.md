@@ -16,9 +16,6 @@ has_children: true
 {: .fs-9 }
 A comprehensive overview of the Chess Database system architecture.
 
-{: .fs-6 .fw-300 }
-The Chess Database uses a modern, performance-optimized architecture with materialized views and efficient data encoding.
-
 [View API](api-reference.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View Database](backend/database.md){: .btn .fs-5 .mb-4 .mb-md-0 }
 
@@ -80,14 +77,12 @@ graph TB
 {: .text-delta }
 
 1. **React Application**
-   - Single-page application
    - Interactive chess board
    - Statistical analysis views
 
 2. **Key Features**
    - Game analysis interface
    - Player statistics dashboard
-   - Opening explorer
    - Performance metrics
 
 ### API Layer
@@ -97,6 +92,7 @@ graph TB
    - RESTful endpoints
    - Performance monitoring
    - Error handling
+   - Response validation
 
 2. **Game Services**
    - Move validation
@@ -146,9 +142,8 @@ graph LR
     C -->|Retrieve| D[16-bit Integer]
     D -->|Decode| E[UCI Move]
 
-    %% Styling
-    classDef encode fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    class A,B,C,D,E encode;
+    classDef encode fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    class A,B,C,D,E encode
 </pre>
 </div>
 
