@@ -1,9 +1,26 @@
-# Data Models Design
+# Data Models
+
+[← Documentation Home](../../index.md) | [Design Overview](../README.md) | [API Reference](api.md)
+
+**Path**: documentation/design/backend/models.md
+
+## Navigation
+- [Overview](#overview)
+- [Core Models](#core-models)
+  - [Game Model](#game-model)
+  - [Player Model](#player-model)
+  - [Analysis Models](#analysis-models)
+- [Supporting Models](#supporting-models)
+- [Relationships](#relationships)
+- [Validation Rules](#validation-rules)
+
+## Overview
+
+This document describes the database models and their relationships in the Chess Database System.
 
 ## Core Models
 
 ### Game Model
-
 #### Schema
 ```python
 class GameDB(Base):
@@ -125,7 +142,7 @@ class DetailedPerformanceResponse(BaseModel):
     last_updated: datetime
 ```
 
-## Monitoring Models
+## Supporting Models
 
 ### Endpoint Metrics
 ```python
@@ -160,7 +177,26 @@ class DatabaseMetricsResponse(BaseModel):
     endpoint_metrics: List[EndpointMetrics]
 ```
 
-## Data Validation
+## Relationships
+
+### Direct Relationships
+1. Game → Players (Many-to-Two)
+   - White player
+   - Black player
+2. Game → Opening (Many-to-One)
+3. Performance → Player (Many-to-One)
+
+### Derived Data
+1. Player Statistics
+   - Aggregated from games
+   - Performance metrics
+   - Opening preferences
+2. Opening Statistics
+   - Usage frequency
+   - Success rates
+   - Player preferences
+
+## Validation Rules
 
 ### Game Validation
 - Valid player IDs
@@ -179,22 +215,3 @@ class DatabaseMetricsResponse(BaseModel):
 - Valid time periods
 - Consistent game counts
 - Valid statistical ranges
-
-## Model Relationships
-
-### Direct Relationships
-1. Game -> Players (Many-to-Two)
-   - White player
-   - Black player
-2. Game -> Opening (Many-to-One)
-3. Performance -> Player (Many-to-One)
-
-### Derived Data
-1. Player Statistics
-   - Aggregated from games
-   - Performance metrics
-   - Opening preferences
-2. Opening Statistics
-   - Usage frequency
-   - Success rates
-   - Player preferences

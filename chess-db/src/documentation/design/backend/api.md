@@ -1,5 +1,25 @@
 # API Design Specification
 
+[← Documentation Home](../../index.md) | [Design Overview](../README.md) | [System Diagram](../system-diagram.md)
+
+**Path**: documentation/design/backend/api.md
+
+## Navigation
+- [Overview](#overview)
+- [API Structure](#api-structure)
+  - [Game Operations](#game-operations)
+  - [Player Operations](#player-operations)
+  - [Analysis Operations](#analysis-operations)
+  - [Database Operations](#database-operations)
+- [Request/Response Models](#requestresponse-models)
+- [Error Handling](#error-handling)
+- [API Security](#api-security)
+- [Performance Optimization](#performance-optimization)
+
+## Overview
+
+This document details the REST API endpoints provided by the Chess Database System. All endpoints are prefixed with `/api`.
+
 ## API Structure
 
 ### Game Operations

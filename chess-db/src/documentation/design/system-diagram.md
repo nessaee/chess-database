@@ -1,5 +1,16 @@
 # Interactive System Diagram
 
+[← Documentation Home](../index.md) | [Design Overview](README.md) | [API Reference](backend/api.md)
+
+## Navigation
+- [Overview](#overview)
+- [High-Level Architecture](#high-level-architecture)
+- [Component Details](#component-details)
+  - [Frontend Layer](#frontend-layer)
+  - [API Layer](#api-layer)
+  - [Repository Layer](#repository-layer)
+- [Usage Guide](#usage-guide)
+
 ## Overview
 This document provides an interactive system diagram of the Chess Database System. Click on any component to explore its details.
 
