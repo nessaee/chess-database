@@ -1,6 +1,5 @@
 # Theme settings
-remote_theme: pages-themes/cayman@v0.2.0
-show_downloads: false
+theme: jekyll-theme-cayman
 
 # Site settings
 title: Chess Database Documentation
@@ -11,20 +10,6 @@ repository: nessaee/chess-database
 
 # Build settings
 markdown: kramdown
-kramdown:
-  syntax_highlighter: rouge
-  input: GFM
-  auto_ids: true
-  hard_wrap: false
-  math_engine: mathjax
-  smart_quotes: ["apos", "apos", "quot", "quot"]
-  syntax_highlighter_opts:
-    css_class: highlight
-    span:
-      line_numbers: false
-    block:
-      line_numbers: true
-      start_line: 1
 
 # Enable plugins
 plugins:
