@@ -15,6 +15,55 @@ The Chess Database uses advanced PostgreSQL features to optimize performance and
 
 ---
 
+## Entity Relationship Diagram
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+erDiagram
+    GAMES {
+        int id PK
+        int white_player_id FK
+        int black_player_id FK
+        smallint white_elo
+        smallint black_elo
+        date date
+        char(3) eco
+        bytea moves
+        smallint result
+    }
+    
+    PLAYERS {
+        int id PK
+        string name
+        smallint rating
+        int games_played
+        float win_rate
+    }
+    
+    OPENINGS {
+        int id PK
+        char(3) eco
+        string name
+        bytea moves
+        int popularity
+    }
+    
+    ENDPOINT_METRICS {
+        int id PK
+        string endpoint
+        string method
+        int status_code
+        float response_time_ms
+        int response_size_bytes
+        timestamp created_at
+    }
+    
+    GAMES ||--o{ PLAYERS : "white_player"
+    GAMES ||--o{ PLAYERS : "black_player"
+    GAMES ||--o{ OPENINGS : "has_opening"
+</pre>
+</div>
+
 ## Table Partitioning
 
 ### Games Table Partitioning
