@@ -1,175 +1,232 @@
 ---
 layout: default
-title: Architecture
-nav_order: 2
-has_children: true
+title: System Architecture
+description: Detailed overview of the Chess Database system architecture and components
 ---
 
 # System Architecture
 
-{: .fs-9 }
-A comprehensive overview of the Chess Database system architecture.
+The Chess Database implements a modern, microservices-based architecture comprising three primary layers: frontend, backend API, and database. Each layer is containerized using Docker for consistent deployment and scalability.
 
-{: .fs-6 .fw-300 }
-The Chess Database is built using a modern, scalable architecture that separates concerns between frontend, backend, and database layers.
-
-[View Components](frontend/components){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View API](api-reference){: .btn .fs-5 .mb-4 .mb-md-0 }
-
----
-
-## High-Level Architecture
+## System Overview
 
 ```mermaid
+%%{init: {'theme': 'neutral' }}%%
 graph TB
-    subgraph Client Layer
-        A[React Frontend]
-        B[Chess Board Component]
-        C[Analysis UI]
+    %% Main Components
+    Frontend[React Frontend]
+    Backend[FastAPI Backend]
+    DB[(PostgreSQL)]
+    Analysis[Analysis Engine]
+
+    %% Frontend Components
+    subgraph "Frontend Layer"
+        GameViewer[Game Viewer]
+        AnalysisTools[Analysis Tools]
+        PlayerStats[Player Stats]
+        StateManagement[State Management]
     end
 
-    subgraph API Layer
-        D[FastAPI Server]
-        E[Game Service]
-        F[Analysis Service]
-        G[Player Service]
+    %% Backend Services
+    subgraph "Backend Layer"
+        GameService[Game Service]
+        PlayerService[Player Service]
+        AnalysisService[Analysis Service]
+        Middleware[Middleware]
     end
 
-    subgraph Data Layer
-        H[(PostgreSQL)]
-        I[Redis Cache]
+    %% Database Layer
+    subgraph "Database Layer"
+        Models[Data Models]
+        Migrations[Migrations]
+        ConnectionPool[Connection Pool]
     end
 
-    A --> B
-    A --> C
-    B --> D
-    C --> D
-    D --> E
-    D --> F
-    D --> G
-    E --> H
-    F --> H
-    G --> H
-    E --> I
-    F --> I
-    G --> I
+    %% Connections
+    Frontend --> |REST API| Backend
+    Backend --> DB
+    Backend --> Analysis
+    
+    %% Layer Connections
+    GameViewer --> GameService
+    AnalysisTools --> AnalysisService
+    PlayerStats --> PlayerService
+    
+    GameService --> Models
+    PlayerService --> Models
+    AnalysisService --> Models
+    
+    Models --> ConnectionPool
+    Migrations --> DB
 
-    style A fill:#61DAFB,stroke:#333
-    style D fill:#009688,stroke:#333
-    style H fill:#336791,stroke:#333
+    %% Styling
+    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px
+    classDef backend fill:#009688,stroke:#333,stroke-width:2px
+    classDef database fill:#336791,stroke:#333,stroke-width:2px
+    classDef analysis fill:#FFA726,stroke:#333,stroke-width:2px
+    
+    class Frontend,GameViewer,AnalysisTools,PlayerStats,StateManagement frontend
+    class Backend,GameService,PlayerService,AnalysisService,Middleware backend
+    class DB,Models,Migrations,ConnectionPool database
+    class Analysis analysis
 ```
 
-## Core Components
+## Frontend Layer
 
-### Frontend Layer
-{: .text-delta }
+The frontend is implemented as a Single Page Application (SPA) using React with TypeScript, providing type safety and improved developer experience.
 
-1. **React Application**
-   - Built with Vite for fast development
-   - Uses Tailwind CSS for styling
-   - Implements responsive design
+### Key Components
 
-2. **Chess Components**
-   - Interactive chess board
-   - Move validation
-   - PGN viewer
+- **Game Viewer**: Interactive chess board with move navigation
+- **Analysis Tools**: Real-time position evaluation and move suggestions
+- **Player Statistics**: Performance tracking and visualization
+- **Opening Explorer**: Opening theory and statistics
 
-3. **Analysis Interface**
-   - Real-time position evaluation
-   - Opening explorer
-   - Game statistics
+### Technical Stack
 
-### API Layer
-{: .text-delta }
+- React 18+ with TypeScript
+- Vite for build optimization
+- Tailwind CSS for styling
+- React Context for state management
+- Jest and React Testing Library for testing
 
-1. **FastAPI Server**
-   - RESTful API endpoints
-   - WebSocket support
-   - Authentication middleware
+## Backend API Layer
 
-2. **Service Layer**
-   - Game management
-   - Player statistics
-   - Position analysis
+The backend is built on FastAPI, a modern Python web framework optimized for high performance and asynchronous operations.
 
-3. **Middleware**
-   - Performance monitoring
-   - Error handling
-   - Rate limiting
+### Key Features
 
-### Data Layer
-{: .text-delta }
+- RESTful API endpoints with OpenAPI documentation
+- Asynchronous request handling using asyncio
+- Comprehensive middleware stack:
+  - Performance monitoring
+  - Request logging
+  - Error handling
+  - Rate limiting
+  - CORS protection
 
-1. **PostgreSQL Database**
-   - Game records
-   - Player profiles
-   - Analysis results
+### API Structure
 
-2. **Redis Cache**
-   - Position cache
-   - Session management
-   - Rate limiting
+```
+/api/v1
+├── /games
+│   ├── GET /
+│   ├── GET /{id}
+│   ├── POST /
+│   └── DELETE /{id}
+├── /players
+│   ├── GET /
+│   ├── GET /{username}
+│   └── GET /{username}/stats
+└── /analysis
+    ├── POST /position
+    └── POST /game/{id}
+```
 
-## Design Principles
+## Database Layer
 
-{: .important }
-The system follows these key principles:
+PostgreSQL serves as the primary database, chosen for its robust support for complex queries and scalability.
 
-1. **Separation of Concerns**
-   - Clear boundaries between layers
-   - Modular component design
-   - Independent scaling
+### Key Features
 
-2. **RESTful Architecture**
-   - Stateless communication
-   - Resource-based URLs
-   - Standard HTTP methods
+- Asynchronous connection pooling via asyncpg
+- SQLAlchemy ORM for type-safe database interactions
+- Alembic for database migration management
+- Automated connection recycling
+- Query optimization through indexes
 
-3. **Performance First**
-   - Efficient caching
-   - Optimized queries
-   - Lazy loading
+### Data Models
 
-## Scalability
+```mermaid
+erDiagram
+    Game {
+        uuid id
+        string white
+        string black
+        string result
+        date date
+        string event
+        text moves
+    }
+    Player {
+        string username
+        int rating
+        json stats
+    }
+    Analysis {
+        uuid game_id
+        text position
+        float evaluation
+        string best_move
+    }
+    Game ||--o{ Analysis : has
+    Game }o--|| Player : plays
+```
 
-The system is designed to scale horizontally:
+## Security Measures
 
-{: .note }
-- Frontend can be served through CDN
-- API servers can be load balanced
-- Database supports replication
+The system implements several security features:
 
-## Security
-
-{: .warning }
-Security measures include:
-
-- CORS configuration
-- Rate limiting
-- Input validation
+- CORS protection with configurable origins
+- Rate limiting on API endpoints
 - SQL injection prevention
+- Secure environment variable management
+- Input validation and sanitization
 
-## Monitoring
+## Performance Optimization
 
-The system includes comprehensive monitoring:
+Performance is optimized through:
 
-1. **Performance Metrics**
-   - Request latency
-   - Database performance
-   - Cache hit rates
+- Asynchronous database operations
+- Connection pooling
+- Response caching
+- Query optimization
+- Frontend bundle optimization
+- CDN integration for static assets
 
-2. **Error Tracking**
-   - Application errors
-   - API failures
-   - Database issues
+## Deployment Architecture
 
-3. **Usage Statistics**
-   - Active users
-   - API usage
-   - Resource utilization
+The system is containerized using Docker and can be deployed using Docker Compose or Kubernetes:
 
-## Next Steps
+```mermaid
+graph LR
+    Client[Client Browser]
+    
+    subgraph "Production Environment"
+        LB[Load Balancer]
+        subgraph "Frontend Containers"
+            F1[Frontend 1]
+            F2[Frontend 2]
+        end
+        subgraph "Backend Containers"
+            B1[Backend 1]
+            B2[Backend 2]
+        end
+        subgraph "Database"
+            Master[(Primary DB)]
+            Slave[(Replica DB)]
+        end
+    end
+    
+    Client --> LB
+    LB --> F1
+    LB --> F2
+    F1 --> B1
+    F1 --> B2
+    F2 --> B1
+    F2 --> B2
+    B1 --> Master
+    B2 --> Master
+    Master --> Slave
+```
 
-- [Setup Development Environment](guides/setup)
-- [API Documentation](api-reference)
-- [Component Details](frontend/components)
+## Monitoring and Logging
+
+The system includes comprehensive monitoring and logging:
+
+- Prometheus metrics collection
+- Grafana dashboards
+- Structured logging with correlation IDs
+- Error tracking and alerting
+- Performance monitoring
+- Health check endpoints
