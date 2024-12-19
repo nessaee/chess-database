@@ -1,10 +1,6 @@
-remote_theme: just-the-docs/just-the-docs
-plugins:
-  - jekyll-remote-theme
-  - jekyll-relative-links
-
 title: Chess Database Documentation
 description: Documentation for the Chess Database System
+theme: just-the-docs
 
 # Enable search
 search_enabled: true
@@ -61,8 +57,7 @@ exclude:
   - "Gemfile*"
   - "README.md"
 
-# Enable Mermaid diagram support
-markdown: kramdown
+# Kramdown settings
 kramdown:
   syntax_highlighter: rouge
   math_engine: mathjax

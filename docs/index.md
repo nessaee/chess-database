@@ -12,7 +12,7 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 {: .fs-6 .fw-300 }
 
 [Get Started](guides/setup){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View on GitHub](https://github.com/yourusername/chess-db){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
@@ -91,7 +91,7 @@ We welcome contributions! See our [Development Guide](guides/development) to get
 Need help? Here's what you can do:
 
 1. Search the documentation using the search bar above
-2. Check our [GitHub Issues](https://github.com/yourusername/chess-db/issues)
+2. Check our [GitHub Issues](https://github.com/nessaee/chess-database/issues)
 3. Create a new issue with details about your problem
 
 ---
@@ -99,4 +99,4 @@ Need help? Here's what you can do:
 {: .note-title }
 > Latest Updates
 >
-> Check our [GitHub repository](https://github.com/yourusername/chess-db) for the latest changes and releases.
+> Check our [GitHub repository](https://github.com/nessaee/chess-database) for the latest changes and releases.
