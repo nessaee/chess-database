@@ -49,7 +49,8 @@ Each chess move is encoded into a 16-bit integer using the following bit layout:
 
 ## Encoding Process
 
-```mermaid
+<div class="mermaid-wrapper">
+<pre class="mermaid">
 graph LR
     A[UCI Move] -->|Parse| B[Split Components]
     B -->|Convert| C[Binary Encoding]
@@ -60,7 +61,8 @@ graph LR
         G[e4] -->|"Square Index"| H[28]
         I[No Promotion] -->|"Value"| J[0]
     end
-```
+</pre>
+</div>
 
 ### Example Encoding
 
@@ -91,22 +93,43 @@ Multiple moves are stored in a binary format with the following structure:
 
 ## Performance Optimizations
 
-1. **Move Caching**
-   ```python
-   self._move_cache: Dict[str, int] = {}
-   self._reverse_cache: Dict[int, str] = {}
-   ```
-   - Frequently used moves are cached
-   - Bidirectional caching for fast encoding/decoding
+### Move Caching
+```python
+class MoveEncoder:
+    def __init__(self):
+        self._move_cache: Dict[str, int] = {}
+        self._reverse_cache: Dict[int, str] = {}
+```
 
-2. **Bit Packing**
-   - Uses Python's `struct` module for efficient binary packing
-   - Employs `bitarray` for bit-level operations
+Key features:
+- Bidirectional caching for fast encoding/decoding
+- Cache size monitoring and cleanup
+- Thread-safe implementation
 
-3. **Error Handling**
-   - Validates move format
-   - Checks square indices
-   - Verifies promotion pieces
+### Batch Processing
+```python
+def encode_game(moves: List[str]) -> bytes:
+    """Encode a full game of moves into bytes."""
+    move_count = len(moves)
+    encoded = bytearray(2 + move_count * 2)  # 2 bytes header + 2 bytes per move
+    
+    # Store move count
+    encoded[0] = move_count >> 8
+    encoded[1] = move_count & 0xFF
+    
+    # Encode moves
+    for i, move in enumerate(moves):
+        encoded_move = encode_move(move)
+        encoded[2+i*2] = encoded_move >> 8
+        encoded[2+i*2+1] = encoded_move & 0xFF
+        
+    return bytes(encoded)
+```
+
+Features:
+- Efficient batch processing
+- Pre-allocated memory
+- Minimal memory copying
 
 ## Storage Benefits
 

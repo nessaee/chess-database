@@ -116,7 +116,7 @@ graph LR
     subgraph "Query Optimization"
         MV["Materialized Views"]
         IDX["Indexes"]
-        PART["Partitioning"]
+        PART["Sharding"]
         CACHE["Query Cache"]
     end
     
@@ -450,9 +450,9 @@ ALERT_THRESHOLDS = {
 ## Future Optimization Opportunities
 
 1. **Database Layer**
-   - Implement table partitioning for historical games
-   - Add bloom filters for membership testing
-   - Optimize vacuum and analyze scheduling
+   - Implement sharding strategy
+   - Add read replicas
+   - Optimize cross-partition queries
    - Implement parallel query execution
 
 2. **Frontend Layer**

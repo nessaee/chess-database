@@ -132,7 +132,7 @@ sequenceDiagram
 
 ## Move Storage
 
-The system uses an efficient move encoding scheme:
+The system uses the following encoding scheme for chess moves:
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
@@ -154,19 +154,21 @@ The system uses PostgreSQL with advanced optimizations:
 ### Partitioning Strategy
 <div class="mermaid-wrapper">
 <pre class="mermaid">
-graph TB
-    subgraph Games Table
-        A[All Games] --> B[Low Rating<br/>0-1500]
-        A --> C[Mid Rating<br/>1501-2000]
-        A --> D[High Rating<br/>2001-3000]
-        A --> E[Master<br/>>3000]
-    end
-    
-    %% Styling
+graph LR
+    A[Game Record] -->|Hash| B[Game ID]
+    B -->|Partition| C[Hash Bucket]
+    C -->|Store| D[Partition 1]
+    C -->|Store| E[Partition N]
+
     classDef partition fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     class B,C,D,E partition;
 </pre>
 </div>
+
+This approach:
+- Ensures even distribution of data across partitions
+- Optimizes parallel query execution
+- Scales horizontally with data growth
 
 ### Performance Monitoring
 <div class="mermaid-wrapper">

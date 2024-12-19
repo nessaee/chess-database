@@ -18,27 +18,52 @@ The Chess Database uses advanced PostgreSQL features to optimize performance and
 ## Table Partitioning
 
 ### Games Table Partitioning
-The games table is partitioned by game result and rating range to optimize query performance:
+The games table is partitioned by hash of the game ID to ensure even data distribution:
 
 ```sql
 CREATE TABLE games (
-    id UUID PRIMARY KEY,
-    white_player_id UUID,
-    black_player_id UUID,
-    white_elo INTEGER,
-    black_elo INTEGER,
-    date DATE,
-    eco VARCHAR(3),
-    moves BYTEA,
-    result SMALLINT
-) PARTITION BY RANGE (white_elo, black_elo);
+    id integer NOT NULL,
+    white_player_id integer,
+    black_player_id integer,
+    white_elo smallint,
+    black_elo smallint,
+    date date,
+    eco char(3),
+    moves bytea,
+    result smallint,
+    CONSTRAINT games_pkey PRIMARY KEY (id),
+    CONSTRAINT games_white_player_id_fkey FOREIGN KEY (white_player_id) REFERENCES players(id),
+    CONSTRAINT games_black_player_id_fkey FOREIGN KEY (black_player_id) REFERENCES players(id),
+    CONSTRAINT result_check CHECK (result >= 0 AND result <= 3)
+) PARTITION BY HASH (id);
 ```
 
-Partition ranges:
-- Low rated games: 0-1500
-- Mid rated games: 1501-2000
-- High rated games: 2001-3000
-- Master games: >3000
+### Partition Creation
+```sql
+-- Create 8 hash partitions
+CREATE TABLE games_0 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 0);
+CREATE TABLE games_1 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 1);
+CREATE TABLE games_2 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 2);
+CREATE TABLE games_3 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 3);
+CREATE TABLE games_4 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 4);
+CREATE TABLE games_5 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 5);
+CREATE TABLE games_6 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 6);
+CREATE TABLE games_7 PARTITION OF games FOR VALUES WITH (modulus 8, remainder 7);
+```
+
+### Partition Management
+
+#### Monitor Distribution
+```sql
+SELECT p.relname AS partition_name,
+       pg_size_pretty(pg_relation_size(p.oid)) AS size,
+       pg_relation_size(p.oid) AS raw_size
+FROM pg_class c
+JOIN pg_inherits i ON i.inhparent = c.oid
+JOIN pg_class p ON i.inhrelid = p.oid
+WHERE c.relname = 'games'
+ORDER BY raw_size DESC;
+```
 
 ## Materialized Views
 
