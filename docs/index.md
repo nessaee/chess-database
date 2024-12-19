@@ -10,7 +10,7 @@ description: A powerful system for analyzing chess games and tracking player sta
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 	mermaid.initialize({
 		startOnLoad: true,
-		theme: 'dark'
+		theme: 'light'
 	});
 </script>
 
@@ -18,17 +18,17 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 
 {: .fs-6 .fw-300 }
 
-[Get Started](setup-guide.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started](guides/setup.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/nessaee/chess-database){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
 ## Quick Start
 
-1. [Setup your environment](setup-guide.md)
+1. [Setup your environment](guides/setup.md)
 2. [Learn the architecture](architecture.md)
 3. [Explore the API](api-reference.md)
-4. [Start developing](development-guide.md)
+4. [Start developing](guides/development.md)
 
 ## System Overview
 
@@ -105,8 +105,8 @@ The documentation is organized into several key sections:
 - [API Reference](api-reference.md)
 
 ### Development
-- [Setup Guide](setup-guide.md): Instructions for setting up the development environment
-- [Development Guide](development-guide.md): Guidelines for development
+- [Setup Guide](guides/setup.md): Instructions for setting up the development environment
+- [Development Guide](guides/development.md): Guidelines for development
 - [Deployment Guide](deployment.md)
 
 ### Components
@@ -116,7 +116,7 @@ The documentation is organized into several key sections:
 
 ## Contributing
 
-We welcome contributions! See our [Development Guide](development-guide.md) to get started.
+We welcome contributions! See our [Development Guide](guides/development.md) to get started.
 
 {: .warning }
 > Please read our contribution guidelines before submitting changes.

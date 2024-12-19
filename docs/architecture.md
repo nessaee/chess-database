@@ -6,70 +6,28 @@ description: Detailed overview of the Chess Database system architecture and com
 
 # System Architecture
 
+[← Documentation Home](README.md) | [System Diagram](system-diagram.md) | [API Reference](api-reference.md) | [Optimizations](optimizations.md)
+
 <script type="module">
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 	mermaid.initialize({
 		startOnLoad: true,
-		theme: 'dark'
+		theme: 'light'
 	});
 </script>
 
+## Overview
+
 The Chess Database implements a modern, microservices-based architecture comprising three primary layers: frontend, backend API, and database. Each layer is containerized using Docker for consistent deployment and scalability.
 
-<div class="mermaid-wrapper">
-<pre class="mermaid">
-graph TB
-    %% System Components
-    subgraph Frontend["Frontend Layer"]
-        UI["User Interface"]
-        STATE["State Management"]
-        SERVICES["Services"]
-    end
-    
-    subgraph API["API Layer"]
-        ROUTES["Routes"]
-        MIDDLEWARE["Middleware"]
-        HANDLERS["Handlers"]
-    end
-    
-    subgraph Data["Data Layer"]
-        CACHE["Cache"]
-        DB["Database"]
-        MODELS["Models"]
-    end
-    
-    %% Component Relationships
-    CLIENT(("Client")) --> UI
-    UI --> STATE
-    STATE --> SERVICES
-    SERVICES --> ROUTES
-    
-    ROUTES --> MIDDLEWARE
-    MIDDLEWARE --> HANDLERS
-    HANDLERS --> CACHE
-    HANDLERS --> DB
-    
-    DB --> MODELS
-    MODELS --> HANDLERS
-    CACHE --> HANDLERS
-    
-    %% Styling
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef highlight fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef storage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    
-    class UI,STATE,SERVICES highlight;
-    class CACHE,DB,MODELS storage;
-    
-    %% Component Labels
-    linkStyle default stroke:#666,stroke-width:2px;
-    
-    %% Notes
-    style Frontend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    style API fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px;
-    style Data fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
-</pre>
-</div>
+## Related Documentation
+
+- [Interactive System Diagram](system-diagram.md)
+- [Frontend Components](frontend/components.md)
+- [Backend Services](backend/api.md)
+- [Data Models](backend/models.md)
+- [Repository Layer](backend/repository.md)
+- [Deployment Guide](deployment.md)
 
 ## System Overview
 

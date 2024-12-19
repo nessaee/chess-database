@@ -1,12 +1,34 @@
+---
+layout: default
+title: System Optimizations
+description: Performance optimizations and best practices for the Chess Database system
+---
+
 # System Optimizations
+
+[← Documentation Home](README.md) | [System Architecture](architecture.md) | [System Diagram](system-diagram.md) | [API Reference](api-reference.md)
 
 <script type="module">
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 	mermaid.initialize({
 		startOnLoad: true,
-		theme: 'dark'
+		theme: 'light'
 	});
 </script>
+
+## Quick Links
+
+- [Caching Strategy](#caching-strategy)
+- [Database Optimizations](#database-optimizations)
+- [API Performance](#api-performance)
+- [Frontend Performance](#frontend-performance)
+
+## Related Documentation
+
+- [System Architecture](architecture.md)
+- [Backend Services](backend/api.md)
+- [Data Models](backend/models.md)
+- [Development Guide](guides/development.md)
 
 This document details the optimization strategies implemented across different layers of the Chess Database system.
 

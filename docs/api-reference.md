@@ -1,18 +1,34 @@
 ---
 layout: default
 title: API Reference
-description: Comprehensive documentation of the Chess Database API endpoints
+description: Complete reference for the Chess Database API endpoints
 ---
 
 # API Reference
+
+[← Documentation Home](README.md) | [System Architecture](architecture.md) | [System Diagram](system-diagram.md) | [Optimizations](optimizations.md)
 
 <script type="module">
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
 	mermaid.initialize({
 		startOnLoad: true,
-		theme: 'dark'
+		theme: 'light'
 	});
 </script>
+
+## Quick Links
+
+- [Authentication](backend/api.md#authentication)
+- [Game Operations](backend/api.md#game-operations)
+- [Player Operations](backend/api.md#player-operations)
+- [Analysis Operations](backend/api.md#analysis-operations)
+
+## Related Documentation
+
+- [Backend Services](backend/api.md)
+- [Data Models](backend/models.md)
+- [Repository Layer](backend/repository.md)
+- [System Architecture](architecture.md)
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
