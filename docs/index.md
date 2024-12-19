@@ -6,6 +6,14 @@ description: A powerful system for analyzing chess games and tracking player sta
 
 # Chess Database Documentation
 
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'dark'
+	});
+</script>
+
 The Chess Database is a powerful system for analyzing chess games and tracking player statistics. This documentation will help you understand, use, and contribute to the project.
 
 {: .fs-6 .fw-300 }
@@ -27,7 +35,7 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 The Chess Database is a full-stack application built with modern technologies:
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% System Overview
     subgraph Frontend["Frontend Layer"]
@@ -75,7 +83,7 @@ graph TB
     style Frontend fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Backend fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Data fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Key Features

@@ -1,9 +1,17 @@
 # System Optimizations
 
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'dark'
+	});
+</script>
+
 This document details the optimization strategies implemented across different layers of the Chess Database system.
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     subgraph "System Layers"
         Frontend["Frontend Layer"]
@@ -38,7 +46,7 @@ graph TB
     %% Group Styling
     style System Layers fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Optimization Types fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Database Layer Optimizations
@@ -81,7 +89,7 @@ The system employs materialized views for computationally intensive queries that
    - Optimized for opening explorer queries
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph LR
     subgraph "Query Optimization"
         MV["Materialized Views"]
@@ -114,7 +122,7 @@ graph LR
     %% Group Styling
     style Query Optimization fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style View Types fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 #### Index Strategy
@@ -195,7 +203,7 @@ Timeout configurations:
 - LONG: 1 hour (stable data)
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     subgraph "Cache Levels"
         L1["Browser Cache"]
@@ -219,7 +227,7 @@ graph TB
     
     %% Group Styling
     style Cache Levels fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 #### Cache Invalidation Strategy
@@ -277,7 +285,7 @@ async def optimize_response(request: Request, call_next):
 ```
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 sequenceDiagram
     participant C as Client
     participant M as Middleware
@@ -302,7 +310,7 @@ sequenceDiagram
     class M middleware;
     class H handler;
     class D database;
-</div>
+</pre>
 </div>
 
 #### Response Transformation
@@ -344,7 +352,7 @@ def track_query_performance():
 ```
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     subgraph "Metrics Collection"
         QM["Query Metrics"]
@@ -377,7 +385,7 @@ graph TB
     %% Group Styling
     style Metrics Collection fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Monitoring Systems fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 #### Health Check Implementation

@@ -6,8 +6,16 @@ description: Comprehensive documentation of the Chess Database API endpoints
 
 # API Reference
 
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'dark'
+	});
+</script>
+
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph LR
     subgraph "API Endpoints"
         GAMES["/games"]
@@ -37,7 +45,7 @@ graph LR
     
     style "API Endpoints" fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style "HTTP Methods" fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Overview
@@ -123,7 +131,7 @@ Authorization: Bearer YOUR_API_KEY
 ## Endpoint Structure
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     subgraph "Games API"
         G["/games"]
@@ -165,13 +173,13 @@ graph TB
     style "Games API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style "Players API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style "Analysis API" fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Request/Response Flow
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 sequenceDiagram
     participant C as Client
     participant M as Middleware
@@ -198,13 +206,13 @@ sequenceDiagram
     class V validator;
     class H handler;
     class D database;
-</div>
+</pre>
 </div>
 
 ## Authentication Flow
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 sequenceDiagram
     participant C as Client
     participant A as Auth
@@ -234,13 +242,13 @@ sequenceDiagram
     class A auth;
     class API api;
     class D database;
-</div>
+</pre>
 </div>
 
 ## Error Handling
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     subgraph "Error Types"
         VAL["Validation Error"]
@@ -272,13 +280,13 @@ graph TB
     class MID middleware;
     class LOG logger;
     class RESP response;
-</div>
+</pre>
 </div>
 
 ## Rate Limiting
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph LR
     subgraph "Rate Limit Components"
         CHECK["Limit Checker"]
@@ -296,7 +304,7 @@ graph LR
     classDef component fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     
     class CHECK,STORE,POLICY component;
-</div>
+</pre>
 </div>
 
 ## Response Format
@@ -353,7 +361,7 @@ The current API version is specified in the configuration. Version information i
 ### Games API
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 classDiagram
     class GameEndpoint {
         +GET /games
@@ -380,13 +388,13 @@ classDiagram
     
     class GameEndpoint endpoint;
     class GameResponse response;
-</div>
+</pre>
 </div>
 
 ### Players API
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 classDiagram
     class PlayerEndpoint {
         +GET /players
@@ -410,13 +418,13 @@ classDiagram
     
     class PlayerEndpoint endpoint;
     class PlayerResponse response;
-</div>
+</pre>
 </div>
 
 ### Analysis API
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 classDiagram
     class AnalysisEndpoint {
         +GET /analysis/game/{id}
@@ -438,5 +446,60 @@ classDiagram
     
     class AnalysisEndpoint endpoint;
     class AnalysisResponse response;
+</pre>
 </div>
+
+<div class="mermaid-wrapper">
+<pre class="mermaid">
+graph TB
+    %% API Components
+    subgraph Endpoints["API Endpoints"]
+        GAMES["/games"]
+        PLAYERS["/players"]
+        ANALYSIS["/analysis"]
+        METRICS["/metrics"]
+    end
+    
+    subgraph Auth["Authentication"]
+        AUTH["/auth"]
+        TOKEN["/token"]
+        REFRESH["/refresh"]
+    end
+    
+    subgraph Admin["Admin"]
+        USERS["/users"]
+        ROLES["/roles"]
+        CONFIG["/config"]
+    end
+    
+    %% Relationships
+    CLIENT(("Client")) --> AUTH
+    AUTH --> TOKEN
+    TOKEN --> REFRESH
+    
+    TOKEN --> GAMES
+    TOKEN --> PLAYERS
+    TOKEN --> ANALYSIS
+    TOKEN --> METRICS
+    
+    TOKEN --> USERS
+    TOKEN --> ROLES
+    TOKEN --> CONFIG
+    
+    %% Styling
+    classDef endpoint fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef auth fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef admin fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef client fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    
+    class GAMES,PLAYERS,ANALYSIS,METRICS endpoint;
+    class AUTH,TOKEN,REFRESH auth;
+    class USERS,ROLES,CONFIG admin;
+    class CLIENT client;
+    
+    %% Group Styling
+    style Endpoints fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Auth fill:#f5f5f5,stroke:#333,stroke-width:2px;
+    style Admin fill:#f5f5f5,stroke:#333,stroke-width:2px;
+</pre>
 </div>

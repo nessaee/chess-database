@@ -6,10 +6,18 @@ description: Detailed overview of the Chess Database system architecture and com
 
 # System Architecture
 
+<script type="module">
+	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+	mermaid.initialize({
+		startOnLoad: true,
+		theme: 'dark'
+	});
+</script>
+
 The Chess Database implements a modern, microservices-based architecture comprising three primary layers: frontend, backend API, and database. Each layer is containerized using Docker for consistent deployment and scalability.
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% System Components
     subgraph Frontend["Frontend Layer"]
@@ -60,13 +68,13 @@ graph TB
     style Frontend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
     style API fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px;
     style Data fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## System Overview
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 %%{init: {'theme': 'neutral' }}%%
 graph TB
     %% Main Components
@@ -125,7 +133,7 @@ graph TB
     class Backend,GameService,PlayerService,AnalysisService,Middleware backend
     class DB,Models,Migrations,ConnectionPool database
     class Analysis analysis
-</div>
+</pre>
 </div>
 
 ## Frontend Layer
@@ -183,7 +191,7 @@ The backend is built on FastAPI, a modern Python web framework optimized for hig
 ## Infrastructure Implementation
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% Container Components
     subgraph Containers["Docker Environment"]
@@ -222,13 +230,13 @@ graph TB
     
     %% Container Styling
     style Containers fill:#f5f5f5,stroke:#212121,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Data Flow Architecture
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 sequenceDiagram
     %% Participants
     participant C as Client
@@ -260,7 +268,7 @@ sequenceDiagram
     note over C,UI: Client Layer
     note over API: Application Layer
     note over Cache,DB: Data Layer
-</div>
+</pre>
 </div>
 
 ## Database Layer
@@ -278,7 +286,7 @@ PostgreSQL serves as the primary database, chosen for its robust support for com
 ### Data Models
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 erDiagram
     Game {
         uuid id
@@ -302,13 +310,13 @@ erDiagram
     }
     Game ||--o{ Analysis : has
     Game }o--|| Player : plays
-</div>
+</pre>
 </div>
 
 ## Database Implementation
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% Core Components
     subgraph Models["Data Models"]
@@ -355,13 +363,13 @@ graph TB
     style Models fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Access fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Storage fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Service Layer Implementation
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph LR
     %% Service Components
     subgraph Services["Service Layer"]
@@ -412,13 +420,13 @@ graph LR
     style Services fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Base fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Core fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Security Implementation
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% Security Layers
     subgraph Auth["Authentication"]
@@ -469,13 +477,13 @@ graph TB
     style Auth fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Protection fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Data fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Monitoring Implementation
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph TB
     %% Monitoring Components
     subgraph Metrics["Metrics Collection"]
@@ -519,7 +527,7 @@ graph TB
     style Metrics fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Analysis fill:#f5f5f5,stroke:#333,stroke-width:2px;
     style Visualization fill:#f5f5f5,stroke:#333,stroke-width:2px;
-</div>
+</pre>
 </div>
 
 ## Security Measures
@@ -548,7 +556,7 @@ Performance is optimized through:
 The system is containerized using Docker and can be deployed using Docker Compose or Kubernetes:
 
 <div class="mermaid-wrapper">
-<div class="mermaid">
+<pre class="mermaid">
 graph LR
     Client[Client Browser]
     
@@ -578,7 +586,7 @@ graph LR
     B1 --> Master
     B2 --> Master
     Master --> Slave
-</div>
+</pre>
 </div>
 
 ## Monitoring and Logging
