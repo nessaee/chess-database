@@ -2,7 +2,7 @@
 <link rel="shortcut icon" type="image/x-icon" href="{{ '/assets/images/favicon.ico' | relative_url }}">
 
 <!-- Security headers -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' https: data: blob:; style-src 'self' https: 'unsafe-inline'; font-src 'self' https: data:;">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
 <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -14,6 +14,7 @@
     padding: 1rem;
     border-radius: 6px;
     margin: 1.5rem 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   }
   
   .highlight {
@@ -27,5 +28,12 @@
   
   .btn {
     margin: 4px;
+  }
+
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .mermaid {
+      background: #0d1117;
+    }
   }
 </style>
