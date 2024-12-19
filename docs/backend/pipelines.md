@@ -10,9 +10,6 @@ nav_order: 4
 {: .fs-9 }
 Detailed documentation of the game and opening data processing pipelines.
 
-{: .fs-6 .fw-300 }
-The Chess Database uses sophisticated pipelines to process and store chess games and openings efficiently.
-
 ---
 <script type="module">
 	import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
@@ -27,7 +24,7 @@ The system implements two main data processing pipelines:
 1. Game Pipeline: Processes and imports chess games from PGN files
 2. Opening Pipeline: Processes and stores chess openings from TSV files
 
-Both pipelines use asynchronous processing and efficient data encoding for optimal performance.
+Both pipelines use asynchronous processing and data encoding for optimal performance.
 
 ## Game Pipeline
 
@@ -76,34 +73,41 @@ graph TB
 ### Components
 
 #### 1. Input Processing
-- **PGN File Handling**
-  - Supports single files and directories
-  - Handles compressed archives
-  - Implements concurrent file processing
+- **Source Handling**
+  - Downloads PGN/ZIP files from configured sources
+  - Implements concurrency control
+  - Supports multiple file formats
 - **Chunk Processing**
-  - Processes PGN files in chunks for memory efficiency
-  - Default chunk size: 50,000 bytes
-  - Configurable through `ProcessingConfig`
+  - Configurable chunk sizes for memory efficiency
+  - Parallel processing capability
+  - Optimized for large files
 
 #### 2. Game Processing
 - **Validation**
-  - Verifies PGN format
-  - Checks move validity
-  - Validates player information
+  - ECO code format verification (letter + 2 digits)
+  - Game result validation (1-0, 0-1, 1/2-1/2, *)
+  - Player and date information checks
 - **Move Encoding**
-  - Uses `ChessMoveEncoder` for efficient storage
-  - Converts moves to binary format
-  - Handles special cases (castling, promotions)
+  - UCI format conversion
+  - Binary encoding for storage efficiency
+  - Special move handling
 
-#### 3. Database Storage
+#### 3. Database Operations
 - **Player Management**
-  - Automatic player creation
-  - Rating tracking
-  - Name normalization
+  - Unique batch processing
+  - Rating history tracking
+  - Duplicate prevention
 - **Game Storage**
-  - Batch inserts for performance
-  - Hash-based partitioning
-  - Automatic ECO classification
+  - Configurable batch sizes
+  - Exponential backoff retry (5 attempts)
+  - Integrity constraint checks
+
+#### 4. Performance Monitoring
+- **Metrics Tracking**
+  - Processing rates and success ratios
+  - Database operations and retries
+  - File and game-level metrics
+  - Real-time progress updates
 
 ### Configuration
 
@@ -171,30 +175,31 @@ graph TB
 ### Components
 
 #### 1. Input Processing
-- **TSV File Handling**
-  - Processes tab-separated opening files
-  - Format: ECO code, name, PGN moves
-  - Supports batch processing
+- **Data Source**
+  - TSV file reading
+  - Opening definition parsing
+  - Batch processing support
 
-#### 2. Opening Processing
-- **Move Validation**
-  - Verifies move sequences
-  - Checks ECO code validity
-  - Validates opening names
-- **Move Encoding**
-  - Uses same encoder as game pipeline
-  - Optimized for opening sequences
-  - Maintains move order integrity
+#### 2. Move Validation
+- **Validation Checks**
+  - Move sequence legality verification
+  - ECO code assignment validation
+  - Opening name format checks
+  - Comprehensive error logging
 
-#### 3. Database Storage
-- **Opening Table**
-  - ECO classification
-  - Named openings
-  - Encoded move sequences
-- **Indexing**
-  - ECO code indexing
-  - Name-based search support
-  - Move sequence lookup
+#### 3. Storage Operations
+- **Data Storage**
+  - Binary move encoding
+  - Opening metadata storage
+  - Processing statistics tracking
+  - Batch operation support
+
+#### 4. Error Handling
+- **Error Management**
+  - Invalid move sequence logging
+  - Database operation failure tracking
+  - Processing statistics maintenance
+  - Detailed error reporting
 
 ### Database Schema
 

@@ -8,10 +8,10 @@ nav_order: 3
 # Database Optimizations
 
 {: .fs-9 }
-Comprehensive guide to database partitioning, materialized views, and indexing strategies.
+Guide to database partitioning, materialized views, and indexing strategies.
 
 {: .fs-6 .fw-300 }
-The Chess Database uses advanced PostgreSQL features to optimize performance and storage efficiency.
+The Chess Database uses PostgreSQL features to optimize performance and storage efficiency.
 
 ---
 <script type="module">

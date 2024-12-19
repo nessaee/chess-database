@@ -8,10 +8,10 @@ nav_order: 4
 # Chess Move Encoding
 
 {: .fs-9 }
-Efficient binary encoding for chess moves storage.
+Binary encoding for chess moves storage.
 
 {: .fs-6 .fw-300 }
-The Chess Database uses a compact binary format to efficiently store chess moves, reducing storage requirements while maintaining fast access.
+The Chess Database uses a compact binary format to store chess moves, reducing storage requirements while maintaining fast access.
 
 ---
 
