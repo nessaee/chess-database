@@ -24,14 +24,91 @@ Built with modern technologies and optimized for performance.
 
 ---
 
-## Quick Start
-
+## Getting Started
 1. [Installation Guide](guides/installation.md)
-2. [System Architecture](architecture.md)
-3. [API Reference](api-reference.md)
-4. [Feature Demos](demos.md)
+2. [Quick Start Tutorial](guides/quickstart.md)
+3. [Configuration](guides/configuration.md)
 
-## System Overview
+## Architecture
+1. [System Overview](architecture.md)
+2. [Design Principles](architecture/principles.md)
+3. [Data Flow](architecture/dataflow.md)
+
+## Backend
+1. [Database Design](backend/database.md)
+   - Entity Relationships
+   - Table Partitioning
+   - Materialized Views
+2. [Move Encoding](backend/encoding.md)
+   - Compression Algorithm
+   - Performance Metrics
+3. [Data Processing](backend/pipelines.md)
+   - Game Pipeline
+   - Opening Pipeline
+   - Error Handling
+4. [API Implementation](backend/api.md)
+   - FastAPI Setup
+   - Endpoint Design
+   - Error Handling
+
+## Frontend
+1. [React Components](frontend/components.md)
+   - Game Viewer
+   - Analysis Board
+   - Statistics Dashboard
+2. [State Management](frontend/state.md)
+   - Data Flow
+   - Caching Strategy
+3. [UI/UX Design](frontend/design.md)
+   - Theme System
+   - Responsive Layout
+   - Accessibility
+
+## Features
+1. Game Analysis
+   - Real-time Engine Analysis
+   - Opening Classification
+   - Tactical Pattern Detection
+2. Player Statistics
+   - Rating Progression
+   - Opening Preferences
+   - Performance Metrics
+3. Database Operations
+   - Game Import/Export
+   - Batch Processing
+   - Data Validation
+
+## API Reference
+1. [REST API](api-reference.md)
+   - Endpoints Overview
+   - Request/Response Format
+   - Authentication
+2. [WebSocket API](api-reference/websocket.md)
+   - Real-time Updates
+   - Event Types
+   - Connection Management
+
+## Performance
+1. [Database Optimizations](optimizations.md)
+   - Indexing Strategy
+   - Query Performance
+   - Cache Management
+2. [Monitoring](backend/metrics.md)
+   - System Metrics
+   - API Performance
+   - Resource Usage
+
+## Development
+1. [Contributing Guide](contributing.md)
+   - Code Style
+   - Testing Guidelines
+   - Pull Request Process
+2. [Development Setup](guides/development.md)
+   - Local Environment
+   - Testing Tools
+   - Debug Configuration
+
+## System Diagram
 
 <div class="mermaid-wrapper">
 <pre class="mermaid">
@@ -80,75 +157,3 @@ graph TB
     class PG,VIEWS,PARTITIONS data;
 </pre>
 </div>
-
-## Core Features
-
-1. **Game Analysis**
-   - Real-time engine analysis
-   - Opening classification
-   - Tactical pattern detection
-
-2. **Player Statistics**
-   - Rating progression
-   - Opening preferences
-   - Performance metrics
-
-3. **Database Features**
-   - [Efficient Move Storage](backend/encoding.md)
-   - [Database Optimizations](backend/database.md)
-   - [Performance Monitoring](backend/metrics.md) {% include under_construction.html %}
-
-4. **API Endpoints**
-   - [Game Operations](backend/api.md#game-operations)
-   - [Player Operations](backend/api.md#player-operations)
-   - [Analysis Operations](backend/api.md#analysis-operations)
-
-5. **Error Handling**
-   - [Error Types](backend/errors.md) {% include under_construction.html %}
-   - [Recovery Strategies](backend/errors.md#recovery) {% include under_construction.html %}
-   - [Error Reporting](backend/errors.md#reporting) {% include under_construction.html %}
-
-## Documentation Structure
-
-1. **Getting Started**
-   - [Installation Guide](guides/installation.md)
-   - [Configuration](guides/configuration.md)
-   - [API Usage](guides/api-usage.md)
-   - [Troubleshooting](guides/troubleshooting.md)
-
-2. **Architecture**
-   - [System Overview](architecture.md)
-   - [Database Design](backend/database.md)
-   - [Move Encoding](backend/encoding.md)
-
-3. **API Reference**
-   - [Endpoints](api-reference.md)
-   - [Data Models](backend/models.md)
-   - [Authentication](api-reference.md#authentication)
-
-4. **Frontend**
-   - [Components](frontend/components.md)
-   - [State Management](frontend/state.md)
-   - [API Integration](frontend/api.md)
-
-## Performance Features
-
-{: .highlight }
-> - **Efficient Storage**: Binary move encoding reduces storage by ~70%
-> - **Fast Queries**: Materialized views and smart indexing
-> - **Scalable Design**: Table partitioning and performance monitoring
-> - **Real-time Analysis**: Pre-computed statistics and cached results
-
-## Contributing
-
-- [Development Setup](contributing/setup.md)
-- [Coding Standards](contributing/standards.md)
-- [Testing Guide](contributing/testing.md)
-- [Documentation Guide](contributing/documentation.md)
-
-## Support
-
-Need help? Check out our:
-- [FAQ](support/faq.md)
-- [Known Issues](support/known-issues.md)
-- [Community Forum](https://github.com/nessaee/chess-database/discussions)
