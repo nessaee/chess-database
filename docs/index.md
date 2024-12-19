@@ -28,27 +28,53 @@ The Chess Database is a powerful system for analyzing chess games and tracking p
 The Chess Database is a full-stack application built with modern technologies:
 
 ```mermaid
-graph TD
-    A[React Frontend] -->|REST API| B[FastAPI Backend]
-    B --> C[PostgreSQL Database]
-    B --> D[Analysis Engine]
-    
-    subgraph Frontend Components
-        A --> E[Game Viewer]
-        A --> F[Analysis Tools]
-        A --> G[Player Stats]
+%%{init: {'theme': 'neutral' }}%%
+graph LR
+    %% Main Components
+    Frontend[React Frontend]
+    Backend[FastAPI Backend]
+    DB[(PostgreSQL)]
+    Analysis[Analysis Engine]
+
+    %% Frontend Components
+    subgraph "Frontend Components"
+        GameViewer[Game Viewer]
+        AnalysisTools[Analysis Tools]
+        PlayerStats[Player Stats]
     end
-    
-    subgraph Backend Services
-        B --> H[Game Service]
-        B --> I[Player Service]
-        B --> J[Analysis Service]
+
+    %% Backend Services
+    subgraph "Backend Services"
+        GameService[Game Service]
+        PlayerService[Player Service]
+        AnalysisService[Analysis Service]
     end
+
+    %% Connections
+    Frontend --> |REST API| Backend
+    Backend --> DB
+    Backend --> Analysis
     
-    style A fill:#61DAFB,stroke:#333,stroke-width:2px
-    style B fill:#009688,stroke:#333,stroke-width:2px
-    style C fill:#336791,stroke:#333,stroke-width:2px
-    style D fill:#FFA726,stroke:#333,stroke-width:2px
+    %% Frontend Internal
+    Frontend --> GameViewer
+    Frontend --> AnalysisTools
+    Frontend --> PlayerStats
+    
+    %% Backend Internal
+    Backend --> GameService
+    Backend --> PlayerService
+    Backend --> AnalysisService
+
+    %% Styling
+    classDef frontend fill:#61DAFB,stroke:#333,stroke-width:2px
+    classDef backend fill:#009688,stroke:#333,stroke-width:2px
+    classDef database fill:#336791,stroke:#333,stroke-width:2px
+    classDef analysis fill:#FFA726,stroke:#333,stroke-width:2px
+    
+    class Frontend frontend
+    class Backend backend
+    class DB database
+    class Analysis analysis
 ```
 
 ## Key Features

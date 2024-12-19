@@ -9,13 +9,18 @@
     <!-- Mermaid initialization -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@{{ site.mermaid.version }}/dist/mermaid.min.js"></script>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
+      document.addEventListener('DOMContentLoaded', (event) => {
         mermaid.initialize({
           startOnLoad: true,
-          theme: 'default',
+          theme: 'neutral',
           securityLevel: 'loose',
           themeVariables: {
-            fontSize: '16px'
+            primaryColor: '#61DAFB',
+            primaryTextColor: '#333',
+            primaryBorderColor: '#333',
+            lineColor: '#333',
+            secondaryColor: '#009688',
+            tertiaryColor: '#336791'
           }
         });
       });
