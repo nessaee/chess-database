@@ -4,6 +4,7 @@ title: Chess Database Documentation
 description: Comprehensive documentation for the Chess Database System
 ---
 
+
 # Chess Database System Documentation
 
 # Chess Database Documentation
