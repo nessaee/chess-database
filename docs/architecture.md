@@ -1,222 +1,175 @@
-# Chess Database System Architecture
+---
+layout: default
+title: Architecture
+nav_order: 2
+has_children: true
+---
 
-## Overview
-The chess database system is a full-stack application built with modern technologies, featuring a React-based frontend and Python backend with asynchronous operations. This document outlines the core architectural components and their interactions.
+# System Architecture
 
-## System Components
+{: .fs-9 }
+A comprehensive overview of the Chess Database system architecture.
+
+{: .fs-6 .fw-300 }
+The Chess Database is built using a modern, scalable architecture that separates concerns between frontend, backend, and database layers.
+
+[View Components](frontend/components){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[View API](api-reference){: .btn .fs-5 .mb-4 .mb-md-0 }
+
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph Client Layer
+        A[React Frontend]
+        B[Chess Board Component]
+        C[Analysis UI]
+    end
+
+    subgraph API Layer
+        D[FastAPI Server]
+        E[Game Service]
+        F[Analysis Service]
+        G[Player Service]
+    end
+
+    subgraph Data Layer
+        H[(PostgreSQL)]
+        I[Redis Cache]
+    end
+
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+    D --> E
+    D --> F
+    D --> G
+    E --> H
+    F --> H
+    G --> H
+    E --> I
+    F --> I
+    G --> I
+
+    style A fill:#61DAFB,stroke:#333
+    style D fill:#009688,stroke:#333
+    style H fill:#336791,stroke:#333
+```
+
+## Core Components
 
 ### Frontend Layer
-- **Framework**: React with Vite
-- **Key Features**:
-  - Interactive Chess Game Viewer
-  - Analysis Interface
-  - Game Search
-  - Player Management
-  - Statistical Charts
+{: .text-delta }
 
-#### Component Structure
-1. Core Components
-   - ChessGamesViewer: Interactive game replay and analysis
-   - ChessAnalysis: Game position evaluation
-   - GameSearch: Advanced game filtering
-   - PlayerSearch: Player statistics and history
+1. **React Application**
+   - Built with Vite for fast development
+   - Uses Tailwind CSS for styling
+   - Implements responsive design
 
-2. Supporting Components
-   - Analysis Tools
-   - Statistical Charts
-   - Admin Interface
-   - Error Boundaries
-   - Tooltips
-
-3. State Management
-   - Component-level state
-   - Shared state management
-   - Game analysis state
-
-### Backend Architecture
-
-#### 1. Repository Layer
-The repository layer implements the Domain-Driven Design (DDD) pattern, organizing business logic into distinct domains:
-
-##### Domain Repositories
-- **Game Repository**
-  - Game CRUD operations
-  - Move history management
-  - Game state tracking
-  - Position indexing
-
-- **Player Repository**
-  - Player profile management
-  - Rating history
-  - Performance statistics
-  - Game history tracking
-
-- **Analysis Repository**
-  - Position analysis
-  - Engine evaluation storage
-  - Analysis caching
-  - Batch analysis management
-
-- **Opening Repository**
-  - Opening tree management
-  - ECO classification
-  - Position statistics
-  - Common variations
-
-##### Common Components
-- Shared utilities
-- Error handling
-- Validation logic
-- Data transformations
-
-#### 2. Data Models
-Implements a rich domain model pattern with the following key entities:
-
-##### Core Models
-- **Game**
-  - Game metadata
-  - Move sequences
-  - Player references
-  - Time control
-  - Opening classification
-
-- **Player**
-  - Profile information
-  - Rating history
-  - Performance metrics
-  - Game statistics
-
-- **Analysis**
-  - Position evaluations
-  - Engine analysis
-  - Best move sequences
-  - Position statistics
-
-- **Opening**
-  - ECO classifications
-  - Move sequences
-  - Theoretical evaluations
-  - Historical statistics
-
-##### Supporting Models
-- **Endpoint**: API usage tracking
-- **Request**: Request logging
-- **Base**: Shared model functionality
-
-#### 3. Database Layer
-- **Engine**: PostgreSQL with AsyncPG driver
-- **ORM**: SQLAlchemy with async support
-- **Connection Management**:
-  - Asynchronous connection pool
-  - Health check enabled
-  - Connection recycling (1-hour interval)
-  - Development mode: Connection pooling disabled
-
-#### 4. API Layer
-- **Framework**: FastAPI
-- **Version**: 1.0.0
-- **Features**:
-  - OpenAPI documentation
-  - Automatic schema validation
-  - Dependency injection
-  - Async request handling
-
-##### API Structure
-1. Game Operations
-   - Game creation and retrieval
+2. **Chess Components**
+   - Interactive chess board
    - Move validation
-   - Game state management
-   - Analysis integration
+   - PGN viewer
 
-2. Player Operations
-   - Profile management
-   - Rating calculations
-   - Statistics aggregation
-   - History tracking
+3. **Analysis Interface**
+   - Real-time position evaluation
+   - Opening explorer
+   - Game statistics
 
-3. Analysis Operations
-   - Position evaluation
-   - Engine integration
-   - Batch analysis
-   - Cache management
+### API Layer
+{: .text-delta }
 
-4. Database Operations
-   - Health monitoring
-   - Performance metrics
-   - Maintenance tasks
+1. **FastAPI Server**
+   - RESTful API endpoints
+   - WebSocket support
+   - Authentication middleware
 
-### Middleware Stack
-1. Performance Monitoring
-   - Request timing
-   - Resource usage tracking
-   - Performance metrics collection
+2. **Service Layer**
+   - Game management
+   - Player statistics
+   - Position analysis
 
-2. Metrics Collection
-   - Request counts
-   - Error rates
-   - Response times
-   - Database operation metrics
-
-3. CORS Handler
-   - Configurable origins
-   - Method restrictions
-   - Header management
-
-## System Integration
-
-### Frontend-Backend Communication
-1. RESTful API Integration
-   - Standardized endpoints
-   - JSON data exchange
-   - Error handling protocols
+3. **Middleware**
+   - Performance monitoring
+   - Error handling
    - Rate limiting
 
-2. Real-time Features
-   - Analysis updates
-   - Game state synchronization
-   - Player status updates
+### Data Layer
+{: .text-delta }
 
-3. Data Flow
-   - Asynchronous loading
-   - Pagination handling
-   - Cache management
-   - Error recovery
+1. **PostgreSQL Database**
+   - Game records
+   - Player profiles
+   - Analysis results
 
-### Cross-Cutting Concerns
-1. Error Handling
-   - Global error boundaries
-   - Domain-specific error types
-   - Error logging and monitoring
-   - Recovery strategies
+2. **Redis Cache**
+   - Position cache
+   - Session management
+   - Rate limiting
 
-2. Performance Optimization
-   - Database query optimization
-   - Frontend bundle optimization
-   - Caching strategies
-   - Load balancing
+## Design Principles
 
-3. Security Measures
-   - Input validation
-   - Request sanitization
-   - Authentication
-   - Authorization
+{: .important }
+The system follows these key principles:
 
-## Security Architecture
-- Environment-based configuration
-- Secure credential management
-- Request validation
-- CORS protection
-- Frontend input sanitization
+1. **Separation of Concerns**
+   - Clear boundaries between layers
+   - Modular component design
+   - Independent scaling
+
+2. **RESTful Architecture**
+   - Stateless communication
+   - Resource-based URLs
+   - Standard HTTP methods
+
+3. **Performance First**
+   - Efficient caching
+   - Optimized queries
+   - Lazy loading
+
+## Scalability
+
+The system is designed to scale horizontally:
+
+{: .note }
+- Frontend can be served through CDN
+- API servers can be load balanced
+- Database supports replication
+
+## Security
+
+{: .warning }
+Security measures include:
+
+- CORS configuration
 - Rate limiting
+- Input validation
 - SQL injection prevention
-- XSS protection
 
-## Deployment Architecture
-- Docker containerization for both frontend and backend
-- Environment isolation
-- Production-ready configuration
-- Scalable component deployment
-- Load balancing
-- Database replication
-- Backup strategies
-- Monitoring and logging
+## Monitoring
+
+The system includes comprehensive monitoring:
+
+1. **Performance Metrics**
+   - Request latency
+   - Database performance
+   - Cache hit rates
+
+2. **Error Tracking**
+   - Application errors
+   - API failures
+   - Database issues
+
+3. **Usage Statistics**
+   - Active users
+   - API usage
+   - Resource utilization
+
+## Next Steps
+
+- [Setup Development Environment](guides/setup)
+- [API Documentation](api-reference)
+- [Component Details](frontend/components)
