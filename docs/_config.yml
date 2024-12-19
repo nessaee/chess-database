@@ -1,5 +1,5 @@
 # Theme settings
-theme: jekyll-theme-cayman
+remote_theme: pages-themes/cayman@v0.2.0
 
 # Site settings
 title: Chess Database Documentation
@@ -7,6 +7,7 @@ description: A powerful system for analyzing chess games and tracking player sta
 baseurl: "/chess-database"
 url: "https://nessaee.github.io"
 repository: nessaee/chess-database
+show_downloads: false
 
 # Build settings
 markdown: kramdown
@@ -15,8 +16,6 @@ markdown: kramdown
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
-  - jekyll-sitemap
-  - jekyll-github-metadata
 
 # Exclude from processing
 exclude:
@@ -26,14 +25,18 @@ exclude:
   - vendor
   - .git
   - .github
-  - README.md
   - CONTRIBUTING.md
   - LICENSE
   - "*.log"
+  - README.md
 
 # GitHub metadata settings
-github: [metadata]
-repository: nessaee/chess-database
+github:
+  is_project_page: true
+  repository_url: https://github.com/nessaee/chess-database
+  repository_name: chess-database
+  owner_url: https://github.com/nessaee
+  owner_name: nessaee
 
 # SEO settings
 twitter:
